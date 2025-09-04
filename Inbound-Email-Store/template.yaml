@@ -24,7 +24,7 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: !Sub "${AWS::StackName}-SGInboundEmailQueue"
-      VisibilityTimeoutSeconds: 60
+      VisibilityTimeout: 60
       MessageRetentionPeriod: 1209600  # 14 days
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt SGInboundEmailDeadLetterQueue.Arn

@@ -1,21 +1,21 @@
-# Generic Inbound Event Handler
+# Generic Inbound Email Event Handler
 
-A generic AWS Lambda function designed to process inbound email events from the SendGrid Inbound Parse webhook system. This handler consumes SNS messages generated when the `handle-sqs-messages` lambda completes processing an email, providing a foundation for implementing custom business logic.
+A simple AWS Lambda function that receives SNS events after the Inbound Email Store stack finishes processing inbound emails. This stack deploys separately from the main email processing stack and provides a foundation for implementing custom business logic.
 
 ## Overview
 
 This component serves as a downstream processor in the email handling pipeline, where you can implement your specific business logic for:
-- Email summarization
-- Content categorization
-- Email routing
-- Custom processing workflows
+- Email summarization and analysis via AI
+- Content categorization and routing
+- Custom notification workflows
+- Integration with external systems
 
 ## Prerequisites
 
 - AWS CLI configured with appropriate permissions
 - AWS SAM CLI installed
 - Node.js runtime environment
-- Access to the parent `Inbound-Email-Store` stack (must be deployed first)
+- The `Inbound-Email-Store` stack must be deployed first
 
 ## Architecture
 
@@ -69,7 +69,7 @@ The deployment uses parameters from the `../global.properties` file. Ensure this
 
 ## Usage
 
-Once deployed, this handler will automatically process SNS messages containing email metadata. The handler provides:
+Once deployed, this handler will automatically process SNS messages containing email metadata. The handler receives:
 
 - **Message ID**: Unique identifier for the processed email
 - **Timestamp**: When the email was received
@@ -104,12 +104,24 @@ export const lambdaHandler = async (event) => {
 };
 ```
 
+## File Structure
+
+```
+Generic-Inbound-Event-Handler/
+├── lambdas/
+│   └── generic-handler/               # Main Lambda function
+│       ├── app.mjs                    # Lambda handler code
+│       └── package.json               # Dependencies
+├── template.yaml                      # SAM template
+└── samconfig.toml                     # SAM configuration
+```
+
 ## Monitoring
 
 Monitor the handler's performance through:
-- CloudWatch Logs
-- CloudWatch Metrics
-- X-Ray tracing (if enabled)
+- **CloudWatch Logs**: Function execution logs
+- **CloudWatch Metrics**: Performance and error metrics
+- **X-Ray tracing**: Request tracing (if enabled)
 
 ## Troubleshooting
 
@@ -118,11 +130,15 @@ Monitor the handler's performance through:
 1. **Deployment Fails**: Ensure the parent `Inbound-Email-Store` stack is deployed first
 2. **Permission Errors**: Verify your AWS profile has sufficient IAM permissions
 3. **Parameter Errors**: Check that `../global.properties` contains all required values
+4. **SNS Not Receiving Messages**: Verify the SNS topic ARN matches the parent stack
 
-### Logs
+### Log Locations
 
-View logs in CloudWatch under the log group: `/aws/lambda/GENERIC-INBOUND-EMAIL-EVENT-HANDLER`
+- **Lambda Function**: CloudWatch Logs → `/aws/lambda/GENERIC-INBOUND-EMAIL-EVENT-HANDLER`
 
 ## Support
 
-For issues or questions, refer to the main project documentation or create an issue in the project repository.
+For issues or questions:
+1. Check CloudWatch logs for error details
+2. Review this documentation
+3. Create an issue in the project repository

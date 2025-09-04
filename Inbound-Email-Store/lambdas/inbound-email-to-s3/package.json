@@ -1,0 +1,18 @@
+{
+    "name": "inbound-email-to-s3",
+    "version": "1.0.0",
+    "description": "Lambda function to receive SendGrid webhook and save to S3",
+    "main": "app.mjs",
+    "repository": "",
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "@aws-sdk/client-s3": "^3.0.0",
+        "@aws-sdk/lib-storage": "^3.0.0"
+    },
+    "scripts": {
+    },
+    "devDependencies": {
+    }
+  }
+  

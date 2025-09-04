@@ -1,0 +1,321 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: This stack contains two options for using API Gateway to handle Inbound Emails from SendGrid.
+
+Parameters:
+  RawInboundEmailsBucketName:
+    Type: String
+  SendGridWebhookPublicKey:
+    Type: String
+    Description: "SendGrid webhook public key for signature validation"
+    NoEcho: true
+
+Resources:
+
+  ##########################################################################
+  #  SQS Queue                 
+  #
+  #  This queue holds for processing any inbound emails relayed by the
+  #  SendGrid Inbound Parse webhook.
+  #  The queue handles spikey traffic so that the downstream functions are
+  #  not overrun by spikey traffic.
+  ##########################################################################
+  SGInboundEmailQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${AWS::StackName}-SGInboundEmailQueue"
+      VisibilityTimeoutSeconds: 60
+      MessageRetentionPeriod: 1209600  # 14 days
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt SGInboundEmailDeadLetterQueue.Arn
+        maxReceiveCount: 3
+  SGInboundEmailQueuePolicy:
+    Type: "AWS::SQS::QueuePolicy"
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Id: QueuePolicy
+        Statement:
+          - Sid: Allow-SendMessage-To-Queue-InboundEmail-From-S3-Event-Notification
+            Effect: Allow
+            Principal: 
+              Service: "s3.amazonaws.com"
+            Action:
+              - "sqs:SendMessage"
+            Resource: !GetAtt SGInboundEmailQueue.Arn
+            Condition:
+              ArnLike:
+                aws:SourceArn: !Join ["",['arn:aws:s3:::',!Ref RawInboundEmailsBucketName]]
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+      Queues: 
+        - !Ref SGInboundEmailQueue      
+
+  ##########################################################################
+  #  Dead Letter Queue for failed messages
+  ##########################################################################
+  SGInboundEmailDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${AWS::StackName}-SGInboundEmailDeadLetterQueue"
+      MessageRetentionPeriod: 1209600  # 14 days
+
+  ##########################################################################
+  #  S3 Bucket
+  #                          
+  #  Bucket to store all raw inbound emails (base64 encoded) sent from SendGrid. 
+  #  This bucket is used for the API => S3 => SQS flow.
+  ########################################################################## 
+  SendGridRawInboundEmailBucket:
+    Type: AWS::S3::Bucket
+    DependsOn:
+      - SGInboundEmailQueuePolicy
+    Properties:      
+      BucketName: !Ref RawInboundEmailsBucketName
+      ##########################################################
+      # This configuraiton sets up hook so that any object
+      # created in this bucket triggers an event on the attached
+      # SQS queue. This is used for the API => S3 => SQS flow.
+      ##########################################################
+      NotificationConfiguration:
+        QueueConfigurations:
+          - Event: "s3:ObjectCreated:*"
+            Queue: !GetAtt SGInboundEmailQueue.Arn
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: '.b64'      
+  SendGridRawInboundEmailBucketPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties: 
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+              - s3:GetObject
+            Resource: !Join 
+              - ''
+              - - 'arn:aws:s3:::'
+                - !Ref SendGridRawInboundEmailBucket
+                - /*    
+
+  ##########################################################################
+  #  S3 Bucket: SendGridInboundParseBucket
+  #                          
+  #  Bucket to store all emails (email object in json and any attachments).
+  ########################################################################## 
+  SendGridInboundParseBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "twilio-sendgrid-inbound-parse-${AWS::AccountId}-${AWS::Region}"
+  
+  ##########################################################################
+  #  SNS Topic                 
+  #
+  #  SQS Messages passing security check get sent to SNS Topic to fan out
+  #  for additional processing by any topic subscribers. 
+  ##########################################################################
+  SGInboundEmailTopic:
+    Type: AWS::SNS::Topic
+
+  ##########################################################################
+  #  SGInboundEmailToS3Api
+  #
+  #  HTTP API: API => S3 => SQS
+  #
+  #  This api receives POST containing inbound email from SendGrid 
+  #  and sends them to the S3 bucket.  
+  #  
+  #  This event processing flow uses API Gateway to accept posts from
+  #  SendGrid and, after checking BASIC AUTHENTICATION, PUTS the object
+  #  directly into an S3 bucket. The createObject event in S3 triggers
+  #  a message into the SQS queue.
+  ##########################################################################
+  SGInboundEmailToS3Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      Description: Path /sendgrid-inbound accepts POST calls to save payload to S3 bucket.
+      StageName: Prod
+      BinaryMediaTypes:
+        - '*/*'
+      Cors:
+        AllowMethods: "'POST'"
+        AllowHeaders: "'*'"
+        AllowOrigin: "'*'"
+  
+  ##########################################################################
+  #  Lambda Layers
+  #                          
+  #  Key code snippets separated in Lambda layers to simplify code and
+  #  allow for reuse.
+  ##########################################################################
+  # Nodejs library used to parse multipart form data
+  SGParseMultipartDataLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub '${AWS::StackName}-SGParseMultipartDataLayer'
+      Description: Node Library used parse multipart form data
+      ContentUri: layers/layer-parse-multipart-data/
+      CompatibleRuntimes:
+        - nodejs20.x
+      LicenseInfo: 'MIT'
+      RetentionPolicy: Retain     
+  ValidateSendGridSignatureLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub '${AWS::StackName}-ValidateSendGridSignature'
+      Description: Function to Validate X-Twilio-Email-Event-Webhook-Signature
+      ContentUri: layers/layer-validate-signature/
+      CompatibleRuntimes:
+        - nodejs20.x
+      LicenseInfo: 'MIT'
+      RetentionPolicy: Retain    
+
+  ##########################################################################
+  #  Lambda Function: SendGridInboundEmailToS3Function                            
+  #                          
+  #  This function is invoked by the "SGInboundEmailToS3Api" API GATEWAY 
+  #  and it opens the request, pulls out the authorization header and verifies
+  #  it, and, if matches, puts the payload and headers into the S3 bucket.
+  ##########################################################################
+  SendGridInboundEmailToS3Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-SendGridInboundEmailToS3Function'
+      Description: Invoked by API GW, runs security check, PUTS event payload into S3 object keeping base64 encoding.
+      CodeUri: lambdas/inbound-email-to-s3/
+      AutoPublishAlias: live
+      Handler: app.lambdaHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - arm64      
+      Timeout: 20
+      MemorySize: 512      
+      # Increase Timeout and MemorySize if you are goign to be handling large emails / large attachments.
+      #MemorySize: 1024  # Increase from default 128MB
+      #Timeout: 300      # Increase timeout for large emails
+      Environment:
+        Variables:          
+          RAW_INBOUND_EMAIL_BUCKET: !Ref RawInboundEmailsBucketName
+          SENDGRID_WEBHOOK_PUBLIC_KEY: !Ref SendGridWebhookPublicKey
+      Role: !GetAtt SendGridInboundEmailToS3FunctionRole.Arn   
+      Layers:
+        - !Ref ValidateSendGridSignatureLayer          
+      Events:
+        PostSendGridInboundEmail:
+          Type: Api
+          Properties:
+            Path: /sendgrid-inbound
+            Method: post
+            RestApiId: !Ref SGInboundEmailToS3Api
+  SendGridInboundEmailToS3FunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - !Ref SendGridRawInboundEmailBucketPolicy
+        - arn:aws:iam::aws:policy/AWSLambdaExecute  
+
+  
+
+  ##########################################################################
+  #  Lambda Function                            
+  #                          
+  #  This function receives messages from SQS queue, checks the authorization
+  #  header is coming from API => SQS, parses the email, saves email contents,
+  #  to S3 (including any attachments if coming from API=>Lambda=>S3=>SWS) 
+  #  and publishes summary object to an SNS topic for downstream processing. 
+  ##########################################################################
+  SGInboundEmailQueueLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:      
+      FunctionName: !Sub '${AWS::StackName}-SGInboundEmailQueueLambdaFunction'
+      Description: Process Inbound Email Lambda to be invoked by the SQS Queue
+      CodeUri: lambdas/handle-sqs-messages/
+      Handler: app.lambdaHandler
+      AutoPublishAlias: live
+      Runtime: nodejs20.x
+      Architectures:
+        - arm64
+      Timeout: 30
+      MemorySize: 512
+      # Increase Timeout and MemorySize if you are goign to be handling large emails / large attachments.
+      #MemorySize: 1024  # Increase from default 128MB
+      #Timeout: 300      # Increase timeout for large emails
+      Environment:
+        Variables:          
+          SNStopic: !Ref SGInboundEmailTopic          
+          REGION: !Ref "AWS::Region"
+          SENDGRID_INBOUND_PARSE_BUCKET: !Ref SendGridInboundParseBucket
+      Layers:
+        - !Ref SGParseMultipartDataLayer
+      Events:
+        SGInboundEmailQueueEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt SGInboundEmailQueue.Arn
+            # OPTIONALLY control BatchSize
+            # Likely best to keep at 1 to allow for entire 256 K
+            # available in SQS message to be available for each inbound email
+            # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-batch-api-actions.html
+            BatchSize: 1
+            # OPTIONALLY control MaximumConcurrency to limit number
+            # of lambdas that can process messages from the SQS queue.
+            # Default setting to 2
+            # https://aws.amazon.com/blogs/compute/introducing-maximum-concurrency-of-aws-lambda-functions-when-using-amazon-sqs-as-an-event-source/
+            ScalingConfig:
+              MaximumConcurrency: 2            
+      Policies:
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt SGInboundEmailTopic.TopicName
+        - S3ReadPolicy:
+            BucketName: !Ref SendGridRawInboundEmailBucket
+        - S3WritePolicy:
+            BucketName: !Ref SendGridInboundParseBucket                         
+
+
+##########################################################################
+#   Outputs
+##########################################################################
+Outputs:
+
+  SGInboundEmailToS3Api:
+    Description: "REST API endpoint"
+    Value: !Sub "https://${SGInboundEmailToS3Api}.execute-api.${AWS::Region}.amazonaws.com/Prod/sendgrid-inbound"
+    Export:
+      Name: 'SGInboundEmailToS3Api'
+
+  SGInboundEmailQueueLambdaFunction:
+    Description: SGInboundEmailQueueLambdaFunction function name
+    Value: !Ref SGInboundEmailQueueLambdaFunction
+
+  SGInboundEmailQueue:
+    Description: SQS queue ARN
+    Value: !GetAtt SGInboundEmailQueue.Arn
+
+  SGInboundEmailQueueURL:
+    Description: SQS queue URL
+    Value: !Ref SGInboundEmailQueue
+
+  SGInboundEmailTopic:
+    Description: SNS topic name
+    Value: !GetAtt SGInboundEmailTopic.TopicName
+    Export:
+      Name: 'SGInboundEmailTopic'
+
+  SGInboundEmailTopicARN:
+    Description: SNS topic ARN
+    Value: !Ref SGInboundEmailTopic    
+    Export:
+      Name: 'SGInboundEmailTopicARN'

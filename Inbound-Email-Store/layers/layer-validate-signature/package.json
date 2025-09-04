@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@sendgrid/eventwebhook": "^8.0.0"
+  }
+}

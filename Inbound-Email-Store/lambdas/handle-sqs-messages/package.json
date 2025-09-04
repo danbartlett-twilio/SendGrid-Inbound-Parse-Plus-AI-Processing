@@ -1,0 +1,20 @@
+{
+    "name": "handle-sqs-messages",
+    "version": "1.0.0",
+    "description": "Lambda function to process SQS messages containing email data",
+    "main": "app.mjs",
+    "repository": "",
+    "author": "",
+    "license": "MIT",
+    "dependencies": {    
+        "mailparser": "^3.6.5",
+        "@aws-sdk/client-s3": "^3.0.0",
+        "@aws-sdk/client-sns": "^3.0.0",
+        "@aws-sdk/lib-storage": "^3.0.0",
+        "parse-multipart-data": "^1.2.1"
+    },
+    "scripts": {
+    },
+    "devDependencies": {
+    }
+  }

@@ -85,7 +85,16 @@ Resources:
               S3Key:
                 Rules:
                   - Name: suffix
-                    Value: '.b64'      
+                    Value: '.b64'
+      ##########################################################
+      # Lifecycle policy to automatically delete all files after 14 days
+      # Adjust this to meet your business requirements.
+      ##########################################################
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteAfter14Days
+            Status: Enabled
+            ExpirationInDays: 14      
   SendGridRawInboundEmailBucketPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties: 
@@ -152,17 +161,6 @@ Resources:
   #  Key code snippets separated in Lambda layers to simplify code and
   #  allow for reuse.
   ##########################################################################
-  # Nodejs library used to parse multipart form data
-  SGParseMultipartDataLayer:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      LayerName: !Sub '${AWS::StackName}-SGParseMultipartDataLayer'
-      Description: Node Library used parse multipart form data
-      ContentUri: layers/layer-parse-multipart-data/
-      CompatibleRuntimes:
-        - nodejs20.x
-      LicenseInfo: 'MIT'
-      RetentionPolicy: Retain     
   ValidateSendGridSignatureLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -258,8 +256,6 @@ Resources:
           SNStopic: !Ref SGInboundEmailTopic          
           REGION: !Ref "AWS::Region"
           SENDGRID_INBOUND_PARSE_BUCKET: !Ref SendGridInboundParseBucket
-      Layers:
-        - !Ref SGParseMultipartDataLayer
       Events:
         SGInboundEmailQueueEvent:
           Type: SQS

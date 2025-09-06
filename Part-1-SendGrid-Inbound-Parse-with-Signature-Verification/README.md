@@ -74,8 +74,8 @@ SendGrid-Inbound-Parse-with-Signature-Verification/
 │   │   └── generic-handler/          # Your custom logic goes here
 │   ├── template.yaml                 # SAM template
 │   └── README.md                     # Customization guide
-├── global.properties                 # Configuration parameters
-├── aws-profile.profile               # AWS profile configuration
+├── ../../global.properties           # Configuration parameters
+├── ../../aws-profile.profile         # AWS profile configuration
 └── README.md                         # This file
 ```
 
@@ -95,11 +95,11 @@ git clone <repository-url>
 cd SendGrid-Inbound-Parse-with-Signature-Verification
 
 # Copy and configure your settings
-cp global.properties.example global.properties
-cp aws-profile.profile.example aws-profile.profile
+cp ../../global.properties.example ../../global.properties
+cp ../../aws-profile.profile.example ../../aws-profile.profile
 
-# Edit global.properties with your values
-# Edit aws-profile.profile with your AWS profile
+# Edit ../../global.properties with your values
+# Edit ../../aws-profile.profile with your AWS profile
 ```
 
 ### 2. Deploy the Main Stack
@@ -143,7 +143,7 @@ The extensible business logic component. See [`Generic-Inbound-Event-Handler/REA
 
 ### Required Parameters
 
-Edit `global.properties` with your specific values:
+Edit `../../global.properties` with your specific values:
 
 ```properties
 # S3 bucket for email storage (must be globally unique)
@@ -158,7 +158,7 @@ AWSRegion="us-east-1"
 
 ### AWS Profile
 
-Configure your AWS profile in `aws-profile.profile`:
+Configure your AWS profile in `../../aws-profile.profile`:
 
 ```bash
 your-aws-profile-name

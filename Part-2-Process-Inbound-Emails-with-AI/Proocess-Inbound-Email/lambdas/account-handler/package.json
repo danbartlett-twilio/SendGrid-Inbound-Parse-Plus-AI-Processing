@@ -1,0 +1,12 @@
+{
+    "name": "account-email-handler",
+    "version": "1.0.0",
+    "description": "Lambda function to handle account-related emails",
+    "main": "app.mjs",
+    "repository": "",
+    "author": "",
+    "license": "MIT",
+    "dependencies": {},
+    "scripts": {},
+    "devDependencies": {}
+}

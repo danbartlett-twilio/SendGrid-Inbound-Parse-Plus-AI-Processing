@@ -65,7 +65,7 @@ aws s3 mb s3://your-unique-bucket-name
 1. Log into your SendGrid account
 2. Navigate to **Settings** → **Mail Settings** → **Inbound Parse**
 3. Copy the webhook public key (starts with `MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE...`)
-4. Add it to your `../global.properties` file:
+4. Add it to your `../../global.properties` file:
 
 ```properties
 SendGridWebhookPublicKey="YOUR_SENDGRID_WEBHOOK_PUBLIC_KEY_HERE"
@@ -73,7 +73,7 @@ SendGridWebhookPublicKey="YOUR_SENDGRID_WEBHOOK_PUBLIC_KEY_HERE"
 
 ### 4. Update Configuration
 
-Edit the `../global.properties` file with your specific values:
+Edit the `../../global.properties` file with your specific values:
 
 ```properties
 S3BucketName="your-unique-bucket-name"
@@ -93,7 +93,7 @@ sam build
 
 ### 2. Configure AWS Profile
 
-Ensure your AWS profile is configured in the `../aws-profile.profile` file, or modify the deploy commands to use your preferred authentication method.
+Ensure your AWS profile is configured in the `../../aws-profile.profile` file, or modify the deploy commands to use your preferred authentication method.
 
 ### 3. Deploy the Stack
 
@@ -103,9 +103,9 @@ Ensure your AWS profile is configured in the `../aws-profile.profile` file, or m
 sam deploy --guided \
   --stack-name INBOUND-EMAIL-STORE \
   --template template.yaml \
-  --profile $(cat ../aws-profile.profile) \
+  --profile $(cat ../../aws-profile.profile) \
   --capabilities CAPABILITY_NAMED_IAM \
-  --parameter-overrides $(cat ../global.properties | tr '\n' ' ')
+  --parameter-overrides $(cat ../../global.properties | tr '\n' ' ')
 ```
 
 #### Subsequent Deployments
@@ -114,9 +114,9 @@ sam deploy --guided \
 sam deploy \
   --stack-name INBOUND-EMAIL-STORE \
   --template template.yaml \
-  --profile $(cat ../aws-profile.profile) \
+  --profile $(cat ../../aws-profile.profile) \
   --capabilities CAPABILITY_NAMED_IAM \
-  --parameter-overrides $(cat ../global.properties | tr '\n' ' ')
+  --parameter-overrides $(cat ../../global.properties | tr '\n' ' ')
 ```
 
 ## Post-Deployment Configuration
@@ -222,7 +222,7 @@ Monitor the system through:
 1. **Deployment Fails**
    - Verify AWS credentials and permissions
    - Check that S3 bucket name is unique
-   - Ensure all required parameters are in `global.properties`
+   - Ensure all required parameters are in `../../global.properties`
 
 2. **Webhook Not Receiving Emails**
    - Verify SendGrid inbound parse configuration
@@ -231,7 +231,7 @@ Monitor the system through:
 
 3. **Signature Validation Failures**
    - Verify SendGrid webhook public key is correct
-   - Check that the key is properly formatted in `global.properties`
+   - Check that the key is properly formatted in `../../global.properties`
 
 4. **Email Processing Errors**
    - Review SQS queue for failed messages

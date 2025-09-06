@@ -37,7 +37,7 @@ sam build
 
 ### 2. Configure AWS Profile
 
-Ensure your AWS profile is configured in the `../aws-profile.profile` file, or modify the deploy commands to use your preferred authentication method.
+Ensure your AWS profile is configured in the `../../aws-profile.profile` file, or modify the deploy commands to use your preferred authentication method.
 
 ### 3. Deploy the Stack
 
@@ -47,9 +47,9 @@ Ensure your AWS profile is configured in the `../aws-profile.profile` file, or m
 sam deploy --guided \
   --stack-name GENERIC-INBOUND-EMAIL-EVENT-HANDLER \
   --template template.yaml \
-  --profile $(cat ../aws-profile.profile) \
+  --profile $(cat ../../aws-profile.profile) \
   --capabilities CAPABILITY_NAMED_IAM \
-  --parameter-overrides $(cat ../global.properties | tr '\n' ' ')
+  --parameter-overrides $(cat ../../global.properties | tr '\n' ' ')
 ```
 
 #### Subsequent Deployments
@@ -58,14 +58,14 @@ sam deploy --guided \
 sam deploy \
   --stack-name GENERIC-INBOUND-EMAIL-EVENT-HANDLER \
   --template template.yaml \
-  --profile $(cat ../aws-profile.profile) \
+  --profile $(cat ../../aws-profile.profile) \
   --capabilities CAPABILITY_NAMED_IAM \
-  --parameter-overrides $(cat ../global.properties | tr '\n' ' ')
+  --parameter-overrides $(cat ../../global.properties | tr '\n' ' ')
 ```
 
 ## Configuration
 
-The deployment uses parameters from the `../global.properties` file. Ensure this file contains all required configuration values before deployment.
+The deployment uses parameters from the `../../global.properties` file. Ensure this file contains all required configuration values before deployment.
 
 ## Usage
 
@@ -129,7 +129,7 @@ Monitor the handler's performance through:
 
 1. **Deployment Fails**: Ensure the parent `Inbound-Email-Store` stack is deployed first
 2. **Permission Errors**: Verify your AWS profile has sufficient IAM permissions
-3. **Parameter Errors**: Check that `../global.properties` contains all required values
+3. **Parameter Errors**: Check that `../../global.properties` contains all required values
 4. **SNS Not Receiving Messages**: Verify the SNS topic ARN matches the parent stack
 
 ### Log Locations

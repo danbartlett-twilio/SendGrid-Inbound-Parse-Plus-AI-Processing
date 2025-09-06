@@ -1,0 +1,19 @@
+{
+    "name": "first-pass-email-processor",
+    "version": "1.0.0",
+    "description": "Lambda function to categorize and summarize inbound emails using AWS Bedrock",
+    "main": "app.mjs",
+    "repository": "",
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "@aws-sdk/client-s3": "^3.0.0",
+        "@aws-sdk/client-bedrock-runtime": "^3.0.0",
+        "@aws-sdk/client-eventbridge": "^3.0.0"
+    },
+    "scripts": {
+    },
+    "devDependencies": {
+    }
+  }
+  

@@ -1,0 +1,12 @@
+{
+    "name": "sales-email-handler",
+    "version": "1.0.0",
+    "description": "Lambda function to handle sales-related emails",
+    "main": "app.mjs",
+    "repository": "",
+    "author": "",
+    "license": "MIT",
+    "dependencies": {},
+    "scripts": {},
+    "devDependencies": {}
+}

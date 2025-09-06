@@ -1,0 +1,231 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Process Inbound Emails with AI
+
+  Lambda subscribed to SNS topic and processes messages.
+
+Resources:
+
+  ##########################################################################
+  #  EventBridge EventBus
+  #                          
+  #  EventBus for routing categorized emails to appropriate handlers
+  ##########################################################################
+  EmailProcessingEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: EmailProcessingEventBus
+      Description: EventBus for routing categorized email processing events
+
+  ##########################################################################
+  #  (FirstPassFunction) Lambda Function                            
+  #                          
+  #  This function receives messages messages from SNS and does the 
+  #  initial analysis of the email.
+  ##########################################################################
+  FirstPassFunction:
+    Type: AWS::Serverless::Function
+    Properties:      
+      Description: Lambda invoked by SNS topic to process Inbound Emails with AI categorization and summarization
+      CodeUri: lambdas/first-pass/
+      Handler: app.lambdaHandler
+      AutoPublishAlias: live
+      Runtime: nodejs22.x
+      Architectures:
+        - arm64
+      Timeout: 30
+      MemorySize: 512
+      Environment:
+        Variables:
+          REGION: !Ref "AWS::Region"
+          SENDGRID_INBOUND_PARSE_BUCKET: !ImportValue 'SGInboundParseBucketName'
+          EMAIL_PROCESSING_EVENT_BUS: !Ref EmailProcessingEventBus
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !ImportValue 'SGInboundParseBucketName'
+        - BedrockInvokeModel:
+            ModelIds:
+              - "anthropic.claude-3-haiku-20240307-v1:0"
+        - EventBridgePutEvents:
+            EventBusName: !Ref EmailProcessingEventBus
+      Events:
+        SNSEvent:
+          Type: SNS
+          Properties:            
+            Topic: !ImportValue 'SGInboundEmailTopicARN'
+
+  ##########################################################################
+  #  Sales Email Handler Lambda Function                            
+  #                          
+  #  Handles emails categorized as sales
+  ##########################################################################
+  SalesEmailHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Lambda function to handle sales-related emails
+      CodeUri: lambdas/sales-handler/
+      Handler: app.lambdaHandler
+      AutoPublishAlias: live
+      Runtime: nodejs22.x
+      Architectures:
+        - arm64
+      Timeout: 10
+      MemorySize: 128
+      Environment:
+        Variables:
+          REGION: !Ref "AWS::Region"
+
+  ##########################################################################
+  #  Support Email Handler Lambda Function                            
+  #                          
+  #  Handles emails categorized as support
+  ##########################################################################
+  SupportEmailHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Lambda function to handle support-related emails
+      CodeUri: lambdas/support-handler/
+      Handler: app.lambdaHandler
+      AutoPublishAlias: live
+      Runtime: nodejs22.x
+      Architectures:
+        - arm64
+      Timeout: 10
+      MemorySize: 128
+      Environment:
+        Variables:
+          REGION: !Ref "AWS::Region"
+
+  ##########################################################################
+  #  Account Email Handler Lambda Function                            
+  #                          
+  #  Handles emails categorized as account
+  ##########################################################################
+  AccountEmailHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Lambda function to handle account-related emails
+      CodeUri: lambdas/account-handler/
+      Handler: app.lambdaHandler
+      AutoPublishAlias: live
+      Runtime: nodejs22.x
+      Architectures:
+        - arm64
+      Timeout: 10
+      MemorySize: 128
+      Environment:
+        Variables:
+          REGION: !Ref "AWS::Region"
+
+  ##########################################################################
+  #  Inquiry Email Handler Lambda Function                            
+  #                          
+  #  Handles emails categorized as inquiry
+  ##########################################################################
+  InquiryEmailHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Lambda function to handle inquiry-related emails
+      CodeUri: lambdas/inquiry-handler/
+      Handler: app.lambdaHandler
+      AutoPublishAlias: live
+      Runtime: nodejs22.x
+      Architectures:
+        - arm64
+      Timeout: 10
+      MemorySize: 128
+      Environment:
+        Variables:
+          REGION: !Ref "AWS::Region"
+
+  ##########################################################################
+  #  EventBridge Rules for Category Routing
+  ##########################################################################
+  SalesEmailRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !Ref EmailProcessingEventBus
+      EventPattern:
+        source: ["email.processing"]
+        detail-type: ["Email Categorized"]
+        detail:
+          category: ["sales"]
+      Targets:
+        - Arn: !GetAtt SalesEmailHandler.Arn
+          Id: "SalesEmailTarget"
+
+  SupportEmailRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !Ref EmailProcessingEventBus
+      EventPattern:
+        source: ["email.processing"]
+        detail-type: ["Email Categorized"]
+        detail:
+          category: ["support"]
+      Targets:
+        - Arn: !GetAtt SupportEmailHandler.Arn
+          Id: "SupportEmailTarget"
+
+  AccountEmailRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !Ref EmailProcessingEventBus
+      EventPattern:
+        source: ["email.processing"]
+        detail-type: ["Email Categorized"]
+        detail:
+          category: ["account"]
+      Targets:
+        - Arn: !GetAtt AccountEmailHandler.Arn
+          Id: "AccountEmailTarget"
+
+  InquiryEmailRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !Ref EmailProcessingEventBus
+      EventPattern:
+        source: ["email.processing"]
+        detail-type: ["Email Categorized"]
+        detail:
+          category: ["inquiry"]
+      Targets:
+        - Arn: !GetAtt InquiryEmailHandler.Arn
+          Id: "InquiryEmailTarget"
+
+  ##########################################################################
+  #  Lambda Permissions for EventBridge
+  ##########################################################################
+  SalesEmailHandlerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref SalesEmailHandler
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt SalesEmailRule.Arn
+
+  SupportEmailHandlerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref SupportEmailHandler
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt SupportEmailRule.Arn
+
+  AccountEmailHandlerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AccountEmailHandler
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt AccountEmailRule.Arn
+
+  InquiryEmailHandlerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref InquiryEmailHandler
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt InquiryEmailRule.Arn
+    

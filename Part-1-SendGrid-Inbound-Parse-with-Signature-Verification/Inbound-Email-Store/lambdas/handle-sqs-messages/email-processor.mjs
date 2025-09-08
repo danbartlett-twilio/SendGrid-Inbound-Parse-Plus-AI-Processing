@@ -12,6 +12,59 @@ import multipart from 'parse-multipart-data';
 const s3Client = new S3Client({ region: process.env.REGION });
 
 /**
+ * Removes inline images from HTML content
+ * Inline images are identified by their src attribute containing "data:" 
+ * (base64 encoded images). These are replaced with the text "INLINE-IMAGE-REMOVED".
+ * External images (http/https URLs) are left untouched.
+ * @param {string} htmlContent - The HTML content to clean
+ * @returns {string} - HTML content with inline images removed
+ */
+function removeInlineImagesFromHtml(htmlContent) {
+    if (!htmlContent || typeof htmlContent !== 'string') {
+        return htmlContent;
+    }
+    
+    try {
+        // Regular expression to match img tags with data: URLs (inline images)
+        // This matches: <img ... src="data:..." ... >
+        const inlineImageRegex = /<img[^>]*src\s*=\s*["']data:[^"']*["'][^>]*>/gi;
+        
+        // Replace inline images with placeholder text that includes filename if available
+        const cleanedHtml = htmlContent.replace(inlineImageRegex, (match) => {
+            // Try to extract filename from the img tag
+            let filename = "inline";
+            
+            // Look for filename in the src attribute (data:image/png;filename=example.png;base64,...)
+            const filenameMatch = match.match(/filename=([^;]+)/i);
+            if (filenameMatch) {
+                filename = filenameMatch[1];
+            } else {
+                // Look for alt attribute as fallback
+                const altMatch = match.match(/alt\s*=\s*["']([^"']+)["']/i);
+                if (altMatch) {
+                    filename = altMatch[1];
+                } else {
+                    // Look for title attribute as another fallback
+                    const titleMatch = match.match(/title\s*=\s*["']([^"']+)["']/i);
+                    if (titleMatch) {
+                        filename = titleMatch[1];
+                    }
+                }
+            }
+            
+            return `<p><i>[image: ${filename}]</i></p>`;
+        });
+        
+        return cleanedHtml;
+        
+    } catch (error) {
+        console.error('Error removing inline images from HTML:', error);
+        // Return original content if processing fails
+        return htmlContent;
+    }
+}
+
+/**
  * processEmail gets messageId (from SNS), timestamp, emailContents, boundary
  * (used to parse emailsContents). Accepts a single record from the SQS queue.
  */
@@ -107,7 +160,8 @@ export async function processEmail(messageId, messageTimeStamp, emailContents, b
                     
                     // Add HTML content if available
                     if (parsed.html) {
-                        emailContentObject["text/html"] = parsed.html;
+                        // Remove inline images from HTML content before storing
+                        emailContentObject["text/html"] = removeInlineImagesFromHtml(parsed.html);
                     }
                     
                     // Process attachments if any

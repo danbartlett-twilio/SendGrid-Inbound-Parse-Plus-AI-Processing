@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Process Inbound Emails Layers
+
+  Shared Lambda layers for common operations used across email processing functions.
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    Description: Environment name (dev, staging, prod)
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+
+Resources:
+
+  ##########################################################################
+  #  Lambda Layers
+  #                          
+  #  Shared functionality layers for common operations
+  ##########################################################################
+
+  S3OperationsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub 's3-operations-layer-${Environment}'
+      Description: Layer containing S3 operations for email processing
+      ContentUri: layer-s3-operations/
+      CompatibleRuntimes:
+        - nodejs20.x
+      CompatibleArchitectures:
+        - arm64
+
+  EventBridgeOperationsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub 'eventbridge-operations-layer-${Environment}'
+      Description: Layer containing EventBridge operations for email processing
+      ContentUri: layer-eventbridge-operations/
+      CompatibleRuntimes:
+        - nodejs20.x
+      CompatibleArchitectures:
+        - arm64
+
+Outputs:
+  S3OperationsLayerArn:
+    Description: ARN of the S3 Operations Layer
+    Value: !Ref S3OperationsLayer
+    Export:
+      Name: 'SendGridProcessInboundEmails-S3OperationsLayerArn'
+
+  EventBridgeOperationsLayerArn:
+    Description: ARN of the EventBridge Operations Layer
+    Value: !Ref EventBridgeOperationsLayer
+    Export:
+      Name: 'SendGridProcessInboundEmails-EventBridgeOperationsLayerArn'

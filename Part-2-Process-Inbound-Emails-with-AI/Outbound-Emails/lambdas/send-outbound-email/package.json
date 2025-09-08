@@ -1,0 +1,17 @@
+{
+    "name": "send-outbound-email",
+    "version": "1.0.0",
+    "description": "Consolidated lambda to process email events and send emails via SendGrid",
+    "main": "app.mjs",
+    "author": "Dan Bartlett",
+    "license": "MIT",
+    "dependencies": {
+        "nanoid": "^5.0.0",
+        "@sendgrid/mail": "^8.1.1"
+    },
+    "scripts": {
+        "test": "mocha tests/unit/"
+    },
+    "devDependencies": {
+    }
+}

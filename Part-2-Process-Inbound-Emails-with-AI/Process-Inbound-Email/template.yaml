@@ -5,6 +5,15 @@ Description: >
 
   Lambda subscribed to SNS topic and processes messages.
 
+Parameters:
+  BedrockModelIdForCategoryAndSummary:
+    Type: String
+    Description: Bedrock model ID for category and summary
+  BedrockModelIdForAttachmentAnalysis:
+    Type: String
+    Description: Bedrock model ID for image analysis
+
+
 Resources:
 
   ##########################################################################
@@ -31,24 +40,33 @@ Resources:
       CodeUri: lambdas/first-pass/
       Handler: app.lambdaHandler
       AutoPublishAlias: live
-      Runtime: nodejs22.x
+      Runtime: nodejs20.x
       Architectures:
         - arm64
       Timeout: 30
       MemorySize: 512
+      Layers:
+        - !ImportValue SendGridProcessInboundEmails-S3OperationsLayerArn
+        - !ImportValue SendGridProcessInboundEmails-EventBridgeOperationsLayerArn
       Environment:
         Variables:
           REGION: !Ref "AWS::Region"
           SENDGRID_INBOUND_PARSE_BUCKET: !ImportValue 'SGInboundParseBucketName'
           EMAIL_PROCESSING_EVENT_BUS: !Ref EmailProcessingEventBus
+          BEDROCK_MODEL_ID_FOR_CATEGORY_AND_SUMMARY: !Ref BedrockModelIdForCategoryAndSummary
       Policies:
         - S3ReadPolicy:
             BucketName: !ImportValue 'SGInboundParseBucketName'
-        - BedrockInvokeModel:
-            ModelIds:
-              - "anthropic.claude-3-haiku-20240307-v1:0"
-        - EventBridgePutEvents:
-            EventBusName: !Ref EmailProcessingEventBus
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/${BedrockModelIdForCategoryAndSummary}"
+        - Statement:
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !GetAtt EmailProcessingEventBus.Arn
       Events:
         SNSEvent:
           Type: SNS
@@ -67,7 +85,7 @@ Resources:
       CodeUri: lambdas/sales-handler/
       Handler: app.lambdaHandler
       AutoPublishAlias: live
-      Runtime: nodejs22.x
+      Runtime: nodejs20.x
       Architectures:
         - arm64
       Timeout: 10
@@ -88,7 +106,7 @@ Resources:
       CodeUri: lambdas/support-handler/
       Handler: app.lambdaHandler
       AutoPublishAlias: live
-      Runtime: nodejs22.x
+      Runtime: nodejs20.x
       Architectures:
         - arm64
       Timeout: 10
@@ -96,6 +114,13 @@ Resources:
       Environment:
         Variables:
           REGION: !Ref "AWS::Region"
+          SNS_OUTBOUND_EMAIL_TOPIC_ARN: !ImportValue SendGridOutboundEmailEventTopicARN
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sns:Publish
+              Resource: !ImportValue SendGridOutboundEmailEventTopicARN
 
   ##########################################################################
   #  Account Email Handler Lambda Function                            
@@ -109,7 +134,7 @@ Resources:
       CodeUri: lambdas/account-handler/
       Handler: app.lambdaHandler
       AutoPublishAlias: live
-      Runtime: nodejs22.x
+      Runtime: nodejs20.x
       Architectures:
         - arm64
       Timeout: 10
@@ -130,7 +155,7 @@ Resources:
       CodeUri: lambdas/inquiry-handler/
       Handler: app.lambdaHandler
       AutoPublishAlias: live
-      Runtime: nodejs22.x
+      Runtime: nodejs20.x
       Architectures:
         - arm64
       Timeout: 10
@@ -138,6 +163,48 @@ Resources:
       Environment:
         Variables:
           REGION: !Ref "AWS::Region"
+
+  ##########################################################################
+  #  Process Attachments Lambda Function                            
+  #                          
+  #  Handles emails that have attachments
+  ##########################################################################
+  ProcessAttachmentsHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Lambda function to process emails with attachments
+      CodeUri: lambdas/process-attachments/
+      Handler: app.lambdaHandler
+      AutoPublishAlias: live
+      Runtime: nodejs20.x
+      Architectures:
+        - arm64
+      Timeout: 300
+      MemorySize: 1024
+      Layers:
+        - !ImportValue SendGridProcessInboundEmails-S3OperationsLayerArn
+        - !ImportValue SendGridProcessInboundEmails-EventBridgeOperationsLayerArn
+      Environment:
+        Variables:
+          REGION: !Ref "AWS::Region"
+          SENDGRID_INBOUND_PARSE_BUCKET: !ImportValue 'SGInboundParseBucketName'
+          EMAIL_PROCESSING_EVENT_BUS: !Ref EmailProcessingEventBus
+          BEDROCK_MODEL_ID_FOR_ATTACHMENT_ANALYSIS: !Ref BedrockModelIdForAttachmentAnalysis
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !ImportValue 'SGInboundParseBucketName'
+        - S3WritePolicy:
+            BucketName: !ImportValue 'SGInboundParseBucketName'
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/${BedrockModelIdForAttachmentAnalysis}"
+        - Statement:
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !GetAtt EmailProcessingEventBus.Arn
 
   ##########################################################################
   #  EventBridge Rules for Category Routing
@@ -150,7 +217,8 @@ Resources:
         source: ["email.processing"]
         detail-type: ["Email Categorized"]
         detail:
-          category: ["sales"]
+          categorization:
+            category: ["sales"]
       Targets:
         - Arn: !GetAtt SalesEmailHandler.Arn
           Id: "SalesEmailTarget"
@@ -163,7 +231,8 @@ Resources:
         source: ["email.processing"]
         detail-type: ["Email Categorized"]
         detail:
-          category: ["support"]
+          categorization:
+            category: ["support"]
       Targets:
         - Arn: !GetAtt SupportEmailHandler.Arn
           Id: "SupportEmailTarget"
@@ -176,7 +245,8 @@ Resources:
         source: ["email.processing"]
         detail-type: ["Email Categorized"]
         detail:
-          category: ["account"]
+          categorization:
+            category: ["account"]
       Targets:
         - Arn: !GetAtt AccountEmailHandler.Arn
           Id: "AccountEmailTarget"
@@ -189,10 +259,24 @@ Resources:
         source: ["email.processing"]
         detail-type: ["Email Categorized"]
         detail:
-          category: ["inquiry"]
+          categorization:
+            category: ["inquiry"]
       Targets:
         - Arn: !GetAtt InquiryEmailHandler.Arn
           Id: "InquiryEmailTarget"
+
+  HasAttachmentRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !Ref EmailProcessingEventBus
+      EventPattern:
+        source: ["email.processing"]
+        detail-type: ["Email Categorized"]
+        detail:
+          hasAttachment: [true]
+      Targets:
+        - Arn: !GetAtt ProcessAttachmentsHandler.Arn
+          Id: "HasAttachmentTarget"
 
   ##########################################################################
   #  Lambda Permissions for EventBridge
@@ -228,4 +312,12 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt InquiryEmailRule.Arn
+
+  ProcessAttachmentsHandlerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ProcessAttachmentsHandler
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt HasAttachmentRule.Arn
     

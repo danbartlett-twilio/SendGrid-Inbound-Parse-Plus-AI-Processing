@@ -5,13 +5,14 @@
  * It retrieves email data from S3, categorizes the email using AWS Bedrock, and provides a summary.
  */
 
-// Import AWS SDK clients and custom modules
-import { getEmailFromS3 } from './s3-operations.mjs';
-import { categorizeEmail, summarizeEmail } from './bedrock-operations.mjs';
-import { publishEmailCategorizedEvent } from './eventbridge-operations.mjs';
+// Import AWS SDK clients and custom modules from layers
+import { getEmailFromS3 } from '/opt/s3-operations.mjs';
+import { publishEmailCategorizedEvent } from '/opt/eventbridge-operations.mjs';
+import { categorizeAndSummarizeEmail } from './bedrock-operations.mjs';
 
 export const lambdaHandler = async (event) => {
     console.info("EVENT\n" + JSON.stringify(event, null, 2));
+    
     
     try {
         // Extract message from SNS event
@@ -32,11 +33,16 @@ export const lambdaHandler = async (event) => {
         const emailData = await getEmailFromS3(messageId);
         console.log("Retrieved email data from S3");
         
-        // Process email with Bedrock in parallel
-        const [categorizationResult, summaryResult] = await Promise.all([
-            categorizeEmail(emailData),
-            summarizeEmail(emailData)
-        ]);
+        // Process email with Bedrock (categorization and summarization in single call)
+        const aiResult = await categorizeAndSummarizeEmail(emailData);
+        const categorizationResult = aiResult.categorization;
+        const summaryResult = aiResult.summary;
+        
+        // Check for attachments
+        const attachmentCount = emailData.emailAttachments.length;
+        const hasAttachment = attachmentCount > 0;
+        
+        console.log(`Email has ${attachmentCount} attachments: ${hasAttachment}`);
         
         // Prepare the processing result
         const processingResult = {
@@ -45,10 +51,12 @@ export const lambdaHandler = async (event) => {
                 from: emailData.from,
                 to: emailData.to,
                 subject: emailData.subject,
-                timestamp: emailData.messageTimeStamp
+                timestamp: emailData.messageTimeStamp,
+                attachments: attachmentCount
             },
             categorization: categorizationResult,
             summary: summaryResult,
+            hasAttachment: hasAttachment,
             processedAt: new Date().toISOString()
         };
         

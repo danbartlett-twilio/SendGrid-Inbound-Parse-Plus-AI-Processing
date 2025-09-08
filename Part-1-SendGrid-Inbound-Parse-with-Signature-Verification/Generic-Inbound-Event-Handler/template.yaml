@@ -33,7 +33,7 @@ Resources:
       CodeUri: lambdas/generic-handler/
       Handler: app.lambdaHandler
       AutoPublishAlias: live
-      Runtime: nodejs22.x
+      Runtime: nodejs20.x
       Architectures:
         - arm64
       Timeout: 3

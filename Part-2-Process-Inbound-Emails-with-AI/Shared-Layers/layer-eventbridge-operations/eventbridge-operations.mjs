@@ -35,3 +35,32 @@ export async function publishEmailCategorizedEvent(processingResult) {
         throw err;
     }
 }
+
+/**
+ * Publishes an attachment processing completion event to EventBridge
+ * @param {Object} processingResult - The complete attachment processing result
+ * @returns {Object} EventBridge response
+ */
+export async function publishAttachmentProcessedEvent(processingResult) {
+    const event = {
+        Source: "email.attachments",
+        DetailType: "Attachments Processed",
+        Detail: JSON.stringify(processingResult),
+        EventBusName: process.env.EMAIL_PROCESSING_EVENT_BUS,
+        Time: new Date()
+    };
+
+    const command = new PutEventsCommand({
+        Entries: [event]
+    });
+
+    try {
+        console.log("Publishing attachment processed event to EventBridge:", JSON.stringify(event, null, 2));
+        const response = await eventBridgeClient.send(command);
+        console.log("EventBridge response:", JSON.stringify(response, null, 2));
+        return response;
+    } catch (err) {
+        console.error("Error publishing attachment processed event to EventBridge:", err.stack);
+        throw err;
+    }
+}

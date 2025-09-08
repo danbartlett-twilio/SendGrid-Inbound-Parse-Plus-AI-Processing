@@ -120,6 +120,15 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub "twilio-sendgrid-inbound-parse-${AWS::AccountId}-${AWS::Region}"
+      ##########################################################
+      # Lifecycle policy to automatically delete all files after 14 days
+      # Adjust this to meet your business requirements.
+      ##########################################################
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteAfter30Days
+            Status: Enabled
+            ExpirationInDays: 30          
   
   ##########################################################################
   #  SNS Topic                 
@@ -190,7 +199,7 @@ Resources:
       Runtime: nodejs20.x
       Architectures:
         - arm64      
-      Timeout: 20
+      Timeout: 30
       MemorySize: 512      
       # Increase Timeout and MemorySize if you are goign to be handling large emails / large attachments.
       #MemorySize: 1024  # Increase from default 128MB
@@ -315,3 +324,9 @@ Outputs:
     Value: !Ref SGInboundEmailTopic    
     Export:
       Name: 'SGInboundEmailTopicARN'
+
+  SGInboundParseBucketName:
+    Description: S3 bucket name
+    Value: !Ref SendGridInboundParseBucket
+    Export:
+      Name: 'SGInboundParseBucketName'

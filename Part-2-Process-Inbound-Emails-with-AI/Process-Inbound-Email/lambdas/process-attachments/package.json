@@ -1,0 +1,14 @@
+{
+    "name": "process-attachments",
+    "version": "1.0.0",
+    "description": "Lambda function to process emails with attachments",
+    "main": "app.mjs",
+    "repository": "",
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "@aws-sdk/client-bedrock-runtime": "^3.0.0"
+    },
+    "scripts": {},
+    "devDependencies": {}
+}

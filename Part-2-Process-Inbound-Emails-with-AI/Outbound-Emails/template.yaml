@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  SendGridOutboundEmail Microservice: SAM Template receive email events from an SNS topic that triggers outbound emails sent via SendGrid Email API.
+  
+Globals:
+  Function:
+    Timeout: 5
+
+Parameters:
+  SendGridOutboundEmailApiKeyId:
+    Type: String
+  SendGridOutboundEmailDomainName:
+    Type: String
+
+Resources:
+
+  ##########################################################################
+  #  SNS Topics                 
+  #
+  #  Topics used to manage events into, out of, and inbetween the Microservice.
+  ##########################################################################
+  
+  ##########################################################################
+  # SendGridOutboundEmailEventTopic: Any messages sent to this topic are 
+  # emails to be sent to SendGrid API. Internal applications can publish 
+  # to this topic to generate email events. This topic is published 
+  # externally to this stack for other AWS resources to consume.
+  ##########################################################################
+  SendGridOutboundEmailEventTopic:
+    Type: AWS::SNS::Topic  
+  SendGridOutboundEmailEventTopicPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties: 
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - sns:Publish
+            Resource: !Ref SendGridOutboundEmailEventTopic
+
+
+  ##########################################################################
+  #  (SendOutboundEmailFunction) Lambda Function                            
+  #                          
+  #  This function is triggered by messages sent to the 
+  #  SendGridOutboundEmailEventTopic SNS topic. It processes email events,
+  #  configures the message object, and sends emails via SendGrid API.
+  ##########################################################################
+  SendOutboundEmailFunction:
+    Type: AWS::Serverless::Function
+    Properties:      
+      Description: Function to process email events and send emails via SendGrid
+      CodeUri: lambdas/send-outbound-email/
+      Handler: app.lambdaHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - arm64
+      Timeout: 30      
+      MemorySize: 256   
+      EventInvokeConfig: 
+        MaximumRetryAttempts: 0
+      Environment:
+        Variables:
+          SENDGRID_API_KEY_ID: !Ref SendGridOutboundEmailApiKeyId
+          SENDGRID_OUTBOUND_EMAIL_DOMAIN_NAME: !Ref SendGridOutboundEmailDomainName          
+      Layers:
+        - !ImportValue SendGridProcessInboundEmails-S3OperationsLayerArn
+      Events:
+        SNSEvent:
+          Type: SNS
+          Properties:
+            Topic: !Ref SendGridOutboundEmailEventTopic
+
+##########################################################################
+#   Outputs
+##########################################################################
+Outputs:
+
+  SendGridOutboundEmailEventTopic:
+    Description: SNS topic used for email events to be processed.
+    Value: !GetAtt SendGridOutboundEmailEventTopic.TopicName
+    Export:
+      Name: 'SendGridOutboundEmailEventTopic'
+
+  SendGridOutboundEmailEventTopicARN:
+    Description: ARN SNS topic used for email events to be processed.
+    Value: !Ref SendGridOutboundEmailEventTopic
+    Export:
+      Name: 'SendGridOutboundEmailEventTopicARN'
+
+  SendGridOutboundEmailEventTopicPolicy:
+    Description: SNS topic used for email events to be processed.
+    Value: !Ref SendGridOutboundEmailEventTopicPolicy
+    Export:
+      Name: 'SendGridOutboundEmailEventTopicPolicyArn'    

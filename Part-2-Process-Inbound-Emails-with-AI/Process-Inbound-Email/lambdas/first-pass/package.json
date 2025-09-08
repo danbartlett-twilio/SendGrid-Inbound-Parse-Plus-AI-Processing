@@ -7,9 +7,7 @@
     "author": "",
     "license": "MIT",
     "dependencies": {
-        "@aws-sdk/client-s3": "^3.0.0",
-        "@aws-sdk/client-bedrock-runtime": "^3.0.0",
-        "@aws-sdk/client-eventbridge": "^3.0.0"
+        "@aws-sdk/client-bedrock-runtime": "^3.0.0"
     },
     "scripts": {
     },

@@ -122,6 +122,41 @@ cp aws-profile.profile.example aws-profile.profile
 # Edit aws-profile.profile with your AWS profile
 ```
 
+#### Configuration Files Explained
+
+**`global.properties`**
+This file contains all the configuration parameters needed for the system. The file is self-explanatory with clear parameter names and placeholder values.
+
+**`aws-profile.profile`**
+This file specifies which AWS profile to use for deployment. AWS profiles are locally stored configurations that contain credentials and settings for different AWS accounts or regions.
+
+**Understanding AWS Profiles:**
+- AWS profiles are stored in `~/.aws/credentials` and `~/.aws/config` files
+- They allow you to manage multiple AWS accounts and regions from a single machine
+- Each profile contains access keys, secret keys, and default region settings
+- Learn more about AWS profiles in the [AWS CLI Configuration documentation](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html)
+
+**Setting up your AWS profile:**
+1. **Option 1: Use existing profile** - If you already have AWS profiles configured, simply enter the profile name in `aws-profile.profile`
+2. **Option 2: Create new profile** - Run `aws configure --profile your-profile-name` to create a new profile
+3. **Option 3: Use default profile** - If you only have one AWS configuration, you can use "default" as the profile name
+
+**Alternative AWS Access Methods:**
+If you prefer not to use AWS profiles, you can also:
+- Set environment variables: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`
+- Use IAM roles (if running on EC2)
+- Use AWS SSO for enterprise environments
+- Use temporary credentials from AWS STS
+
+**Example aws-profile.profile content:**
+```
+my-aws-profile
+```
+or
+```
+default
+```
+
 ### 2. Configure Required Parameters
 
 Edit `global.properties` with your specific values:

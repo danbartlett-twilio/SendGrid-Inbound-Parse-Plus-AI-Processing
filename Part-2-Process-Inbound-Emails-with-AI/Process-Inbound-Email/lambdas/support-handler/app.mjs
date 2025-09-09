@@ -48,6 +48,32 @@ export const lambdaHandler = async (event) => {
             return String(summary);
         };
 
+        // Format attachment details for display
+        const formatAttachmentDetails = (attachments) => {
+            if (!attachments || attachments.length === 0) {
+                return 'No attachments';
+            }
+            
+            return attachments.map((attachment, index) => {
+                const details = [];
+                details.push(`Attachment ${index + 1}:`);
+                
+                // Always show summary first if it exists
+                if (attachment.summary) {
+                    details.push(`  - Summary: ${attachment.summary}`);
+                }
+                
+                // List all other properties of the attachment object
+                Object.entries(attachment).forEach(([key, value]) => {
+                    if (key !== 'summary' && value !== null && value !== undefined) {
+                        details.push(`  - ${key}: ${value}`);
+                    }
+                });
+                
+                return details.join('\n');
+            }).join('\n\n');
+        };
+
         // Format email data for display with Bedrock response at top and inquiry details at bottom
         const formattedEmailData = `
 ${supportResponse}
@@ -64,6 +90,12 @@ ${'='.repeat(60)}
 - Confidence: ${emailData.categorization?.confidence || 'N/A'}
 - Summary: ${formatSummary(emailData.summary)}
 - Content: ${emailData.originalEmail?.text || emailData.originalEmail?.html || 'N/A'}
+
+${'='.repeat(60)}
+ATTACHMENT DETAILS:
+${'='.repeat(60)}
+
+${formatAttachmentDetails(emailJson.emailAttachments)}
 `;
 
         const htmlFormattedEmailData = `
@@ -75,7 +107,7 @@ ${'='.repeat(60)}
     
     <hr style="border: 2px solid #e9ecef; margin: 30px 0;">
     
-    <div style="background-color: #f1f3f4; padding: 20px; border-radius: 8px;">
+    <div style="background-color: #f1f3f4; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
         <h3 style="color: #495057; margin-top: 0;">Support Inquiry Details</h3>
         <ul style="list-style-type: none; padding: 0;">
             <li><strong>Message ID:</strong> ${emailData.messageId || 'N/A'}</li>
@@ -88,42 +120,96 @@ ${'='.repeat(60)}
             <li><strong>Content:</strong> ${emailData.originalEmail?.text || emailData.originalEmail?.html || 'N/A'}</li>
         </ul>
     </div>
+    
+    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
+        <h3 style="color: #495057; margin-top: 0;">Attachment Details</h3>
+        <div style="white-space: pre-wrap; font-family: monospace; background-color: #ffffff; padding: 15px; border-radius: 4px; border: 1px solid #dee2e6;">${formatAttachmentDetails(emailJson.emailAttachments)}</div>
+    </div>
 </div>
 `;
 
-        const outboundEmail = {
-            "to": emailData.originalEmail?.from,
-            "from": emailData.originalEmail?.to,
-            "subject": "Response to your support inquiry",
-            "text": formattedEmailData,
-            "html": htmlFormattedEmailData,
-            "categories": [
-                "some-category",
-                "some-other-category"
-            ],    
-            "customArgs": 
-                {
-                "twilioFoo": "sendgridBar"    
-                }
-        };
+        // Optionally set the sendEmail flag to true to send an email
+        // You may want to take some other action or trigger some other process
+        // or communicate via another channel.
+        let sendEmail = true;
+        let publishResult = null;
 
-        // Publish the outbound email to SNS topic
-        const publishCommand = new PublishCommand({
-            TopicArn: process.env.SNS_OUTBOUND_EMAIL_TOPIC_ARN,
-            Message: JSON.stringify(outboundEmail),
-            Subject: "Support Response Email"
-        });
+        if (sendEmail) {
+            try {
+                let toEmail = emailData.originalEmail?.from;
+                // Optionally set the to email address programmatically
+                // Currently it is just reply to the sender.
 
-        const publishResult = await snsClient.send(publishCommand);
-        console.log("Successfully published outbound email to SNS:", publishResult.MessageId);
+                let fromEmail = emailData.originalEmail?.to;
+                // Optionally set the from email address programmatically
+                // to include a custom reply-to address like support@yourdomain.com
+                // or include data in the from email address like a ticket number
+                // such as support_844443985@yourdomain.com where replies would 
+                // include a key to context.
+
+                // Generate a dynamic ticket number based on message ID
+                const ticketNumber = emailData.messageId ? 
+                    emailData.messageId.substring(0, 8) : 
+                    Date.now().toString().substring(5);
+
+                let emailSubject = `Re: ${emailData.originalEmail?.subject || 'Support Inquiry'} [Ticket: ${ticketNumber}]`;
+                // Optionally set the email subject programmatically
+                // Currently it is just a generic response to the sender.
+                // But it can include data in the subject like a ticket number
+                // such as "Your Support Ticket ,<844443985>"
+                // Also use "RE: " prefix to indicate a reply to the sender and
+                // establish threading that is applicable to many Mail Clients.
+
+                let categories = ["support", "response"];
+                // Optionally set the categories programmatically. Categories
+                // are high level tags that can be use for reporting.
+
+                let customArgs = {
+                    "messageId": emailData.messageId || 'unknown',
+                    "supportTicketNumber": ticketNumber,
+                    "category": emailData.categorization?.category || 'support',
+                    "confidence": emailData.categorization?.confidence || 0
+                };
+                // Optionally set the custom arguments programmatically. Custom arguments
+                // are key-value pairs that can be used for tracking and are passed into
+                // EventWebhooks generated by email events
+
+                const outboundEmail = {
+                    "to": toEmail,
+                    "from": fromEmail,
+                    "subject": emailSubject,
+                    "text": formattedEmailData,
+                    "html": htmlFormattedEmailData,
+                    "categories": categories,
+                    "customArgs": customArgs
+                };
+
+                // Publish the outbound email to SNS topic
+                const publishCommand = new PublishCommand({
+                    TopicArn: process.env.SNS_OUTBOUND_EMAIL_TOPIC_ARN,
+                    Message: JSON.stringify(outboundEmail),
+                    Subject: "Support Response Email"
+                });
+
+                publishResult = await snsClient.send(publishCommand);
+                console.log("Successfully published outbound email to SNS:", publishResult.MessageId);
+                
+            } catch (snsError) {
+                console.error("Error publishing to SNS:", snsError);
+                // Continue processing even if SNS publish fails
+                publishResult = { MessageId: 'failed' };
+            }
+        }
 
         return {
             statusCode: 200,
             body: JSON.stringify({
                 success: true,
-                message: "Support email processed successfully and published to SNS",
+                message: sendEmail ? 
+                    "Support email processed successfully and published to SNS" : 
+                    "Support email processed successfully (no email sent)",
                 category: "support",
-                snsMessageId: publishResult.MessageId
+                snsMessageId: publishResult?.MessageId || null
             })
         };
         

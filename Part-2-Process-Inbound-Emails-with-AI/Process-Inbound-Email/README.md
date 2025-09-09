@@ -36,9 +36,32 @@ This application creates a complete AI-powered email processing pipeline that:
 │                                                                         │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
 │  │              Process Attachments Handler                       │   │
+│  │                    (if has attachments)                        │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
+
+## Processing Flow
+
+### Standard Email Processing (No Attachments)
+1. **SNS Event** → FirstPassFunction
+2. **AI Processing** → Categorization & Summarization
+3. **EventBridge Event** → "Email Categorized"
+4. **Category Handler** → Processes email and sends response
+
+### Email Processing with Attachments
+1. **SNS Event** → FirstPassFunction
+2. **AI Processing** → Categorization & Summarization
+3. **EventBridge Event** → "Email Categorized" (hasAttachment=true) → ProcessAttachmentsHandler
+4. **Attachment Processing** → Download, analyze, generate summaries
+5. **S3 Update** → Save attachment summaries to email.json
+6. **EventBridge Event** → "Attachments Processed"
+7. **Category Handler** → Processes email with complete attachment details
+
+**Key Benefits**:
+- **Single Response**: One email response per inbound email
+- **Complete Information**: Full attachment details included in response
+- **AI-Powered Analysis**: Intelligent attachment content understanding
 
 ### Components
 
@@ -157,27 +180,56 @@ sam deploy \
 #### SalesEmailHandler
 **Purpose**: Processes sales-related emails
 **Features**: Lead qualification, CRM integration, follow-up scheduling
+**Response Format**: AI-generated sales response + email details + attachment details
 
 #### SupportEmailHandler  
 **Purpose**: Processes support and technical assistance emails
 **Features**: Ticket creation, escalation routing, knowledge base integration
+**Response Format**: AI-generated support response + email details + attachment details
 
 #### AccountEmailHandler
 **Purpose**: Processes account-related emails
 **Features**: Account updates, billing inquiries, subscription management
+**Response Format**: AI-generated account response + email details + attachment details
 
 #### InquiryEmailHandler
 **Purpose**: Processes general inquiries and information requests
 **Features**: Information routing, FAQ responses, general assistance
+**Response Format**: AI-generated inquiry response + email details + attachment details
+
+**Enhanced Email Response Format**:
+All category handlers now include comprehensive attachment details in their response emails:
+- **Text Version**: Structured attachment details with all properties
+- **HTML Version**: Formatted attachment details with proper styling
+- **Summary Priority**: AI-generated attachment summaries displayed prominently
+- **Complete Metadata**: All attachment properties (filename, type, size, etc.)
 
 ### ProcessAttachmentsHandler
 
 **Purpose**: Processes emails with attachments
 **Features**:
-- Attachment analysis and categorization
+- Attachment analysis and categorization using AWS Bedrock AI
 - File type validation and security scanning
 - Content extraction from documents
+- AI-generated summaries for each attachment
 - Integration with document processing services
+
+**Processing Flow**:
+1. Downloads attachments from S3 to temporary storage
+2. Analyzes each attachment using Bedrock AI
+3. Generates content summaries for each attachment
+4. Updates email.json in S3 with attachment summaries
+5. Publishes "Attachments Processed" event to EventBridge
+6. Triggers category handlers with complete attachment information
+
+**Attachment Summary Format**:
+Each attachment object includes:
+- `filename`: Original filename
+- `type`: MIME content type
+- `size`: File size in bytes
+- `key`: S3 storage key
+- `contentId`: Content ID for inline attachments
+- `summary`: AI-generated content summary
 
 ## EventBridge Integration
 
@@ -189,14 +241,24 @@ sam deploy \
 
 The system uses EventBridge rules to route events based on:
 
-1. **Category-based routing**:
-   - `category = "sales"` → SalesEmailHandler
-   - `category = "support"` → SupportEmailHandler
-   - `category = "account"` → AccountEmailHandler
-   - `category = "inquiry"` → InquiryEmailHandler
+1. **Category-based routing (emails without attachments)**:
+   - `category = "sales"` + `hasAttachment = false` → SalesEmailHandler
+   - `category = "support"` + `hasAttachment = false` → SupportEmailHandler
+   - `category = "account"` + `hasAttachment = false` → AccountEmailHandler
+   - `category = "inquiry"` + `hasAttachment = false` → InquiryEmailHandler
 
 2. **Attachment-based routing**:
    - `hasAttachment = true` → ProcessAttachmentsHandler
+
+3. **Category-based routing (after attachment processing)**:
+   - `source = "email.attachments"` + `category = "sales"` → SalesEmailHandler
+   - `source = "email.attachments"` + `category = "support"` → SupportEmailHandler
+   - `source = "email.attachments"` + `category = "account"` → AccountEmailHandler
+   - `source = "email.attachments"` + `category = "inquiry"` → InquiryEmailHandler
+
+**Note**: Each email triggers exactly one category handler:
+- **No attachments**: Direct routing to category handler
+- **With attachments**: Process-attachments → category handler (with attachment summaries)
 
 ### Event Format
 

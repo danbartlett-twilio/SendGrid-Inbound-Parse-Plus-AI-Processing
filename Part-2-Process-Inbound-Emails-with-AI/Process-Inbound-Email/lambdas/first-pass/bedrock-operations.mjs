@@ -21,6 +21,13 @@ Email Details:
 - Subject: ${emailData.subject || 'No Subject'}
 - Body: ${emailData.emailContent['text/plain'] || emailData.emailContent['text/html'] || 'No content'}
 
+IMPORTANT CATEGORIZATION RULES:
+- If you are uncertain about the category or if the email doesn't clearly fit into sales, support, or account categories, DEFAULT TO "inquiry"
+- Only use "sales" for clear sales-related inquiries (pricing, product demos, purchase intent)
+- Only use "support" for technical issues, bug reports, or customer service problems
+- Only use "account" for billing, account changes, login issues, or account-specific matters
+- Use "inquiry" for general questions, information requests, or when the intent is unclear
+
 Please respond with a JSON object in this exact format:
 {
     "categorization": {

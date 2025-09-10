@@ -12,6 +12,9 @@ Parameters:
   BedrockModelIdForAttachmentAnalysis:
     Type: String
     Description: Bedrock model ID for image analysis
+  SendGridOutboundEmailDomainName:
+    Type: String
+    Description: SendGrid outbound email domain name
 
 
 Resources:
@@ -101,6 +104,8 @@ Resources:
       Policies:
         - S3ReadPolicy:
             BucketName: !ImportValue 'SGInboundParseBucketName'
+        - S3WritePolicy:
+            BucketName: !ImportValue 'SGInboundParseBucketName'
         - Statement:
             - Effect: Allow
               Action:
@@ -139,6 +144,8 @@ Resources:
           BEDROCK_MODEL_ID_FOR_CATEGORY_AND_SUMMARY: !Ref BedrockModelIdForCategoryAndSummary
       Policies:
         - S3ReadPolicy:
+            BucketName: !ImportValue 'SGInboundParseBucketName'
+        - S3WritePolicy:
             BucketName: !ImportValue 'SGInboundParseBucketName'
         - Statement:
             - Effect: Allow
@@ -179,6 +186,8 @@ Resources:
       Policies:
         - S3ReadPolicy:
             BucketName: !ImportValue 'SGInboundParseBucketName'
+        - S3WritePolicy:
+            BucketName: !ImportValue 'SGInboundParseBucketName'
         - Statement:
             - Effect: Allow
               Action:
@@ -217,6 +226,50 @@ Resources:
           BEDROCK_MODEL_ID_FOR_CATEGORY_AND_SUMMARY: !Ref BedrockModelIdForCategoryAndSummary
       Policies:
         - S3ReadPolicy:
+            BucketName: !ImportValue 'SGInboundParseBucketName'
+        - S3WritePolicy:
+            BucketName: !ImportValue 'SGInboundParseBucketName'
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sns:Publish
+              Resource: !ImportValue SendGridOutboundEmailEventTopicARN
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/${BedrockModelIdForCategoryAndSummary}"
+
+  ##########################################################################
+  #  Conversation Email Handler Lambda Function                            
+  #                          
+  #  Handles emails categorized as conversation
+  ##########################################################################
+  ConversationEmailHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Lambda function to handle conversation-related emails with conversation tracking
+      CodeUri: lambdas/conversation-handler/
+      Handler: app.lambdaHandler
+      AutoPublishAlias: live
+      Runtime: nodejs20.x
+      Architectures:
+        - arm64
+      Timeout: 30
+      MemorySize: 256
+      Layers:
+        - !ImportValue SendGridProcessInboundEmails-S3OperationsLayerArn
+      Environment:
+        Variables:
+          REGION: !Ref "AWS::Region"
+          SNS_OUTBOUND_EMAIL_TOPIC_ARN: !ImportValue SendGridOutboundEmailEventTopicARN
+          SENDGRID_INBOUND_PARSE_BUCKET: !ImportValue 'SGInboundParseBucketName'
+          BEDROCK_MODEL_ID_FOR_CATEGORY_AND_SUMMARY: !Ref BedrockModelIdForCategoryAndSummary
+          SENDGRID_OUTBOUND_EMAIL_DOMAIN_NAME: !Ref SendGridOutboundEmailDomainName
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !ImportValue 'SGInboundParseBucketName'
+        - S3WritePolicy:
             BucketName: !ImportValue 'SGInboundParseBucketName'
         - Statement:
             - Effect: Allow
@@ -334,6 +387,21 @@ Resources:
         - Arn: !GetAtt InquiryEmailHandler.Arn
           Id: "InquiryEmailTarget"
 
+  ConversationEmailRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !Ref EmailProcessingEventBus
+      EventPattern:
+        source: ["email.processing"]
+        detail-type: ["Email Categorized"]
+        detail:
+          categorization:
+            category: ["conversation"]
+          hasAttachment: [false]
+      Targets:
+        - Arn: !GetAtt ConversationEmailHandler.Arn
+          Id: "ConversationEmailTarget"
+
   HasAttachmentRule:
     Type: AWS::Events::Rule
     Properties:
@@ -406,6 +474,20 @@ Resources:
         - Arn: !GetAtt InquiryEmailHandler.Arn
           Id: "InquiryEmailAfterAttachmentsTarget"
 
+  ConversationEmailAfterAttachmentsRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !Ref EmailProcessingEventBus
+      EventPattern:
+        source: ["email.attachments"]
+        detail-type: ["Attachments Processed"]
+        detail:
+          categorization:
+            category: ["conversation"]
+      Targets:
+        - Arn: !GetAtt ConversationEmailHandler.Arn
+          Id: "ConversationEmailAfterAttachmentsTarget"
+
   ##########################################################################
   #  Lambda Permissions for EventBridge
   ##########################################################################
@@ -440,6 +522,14 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt InquiryEmailRule.Arn
+
+  ConversationEmailHandlerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ConversationEmailHandler
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ConversationEmailRule.Arn
 
   ProcessAttachmentsHandlerPermission:
     Type: AWS::Lambda::Permission
@@ -483,4 +573,12 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt InquiryEmailAfterAttachmentsRule.Arn
+
+  ConversationEmailHandlerAfterAttachmentsPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ConversationEmailHandler
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ConversationEmailAfterAttachmentsRule.Arn
     

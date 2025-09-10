@@ -28,6 +28,22 @@ export const generateSupportResponse = async (emailJson, emailData) => {
         const confidence = emailData.categorization?.confidence || 0;
         const summary = emailData.summary || {};
         
+        // Build attachment information if available
+        let attachmentInfo = "";
+        if (emailJson.emailAttachments && emailJson.emailAttachments.length > 0) {
+            attachmentInfo = "\n\nATTACHMENTS INCLUDED:\n";
+            emailJson.emailAttachments.forEach((attachment, index) => {
+                attachmentInfo += `${index + 1}. ${attachment.filename || 'Unknown file'} (${attachment.type || 'Unknown type'})`;
+                if (attachment.summary) {
+                    attachmentInfo += `\n   Summary: ${attachment.summary}`;
+                }
+                if (attachment.size) {
+                    attachmentInfo += `\n   Size: ${attachment.size} bytes`;
+                }
+                attachmentInfo += "\n";
+            });
+        }
+        
         // Create a comprehensive prompt for the AI
         const prompt = `You are a professional customer support agent. Please generate a helpful, empathetic, and professional response to the following customer inquiry.
 
@@ -36,7 +52,7 @@ CUSTOMER INQUIRY DETAILS:
 - Subject: ${originalSubject}
 - Category: ${category} (confidence: ${confidence})
 - Summary: ${JSON.stringify(summary)}
-- Original Message: ${originalText}
+- Original Message: ${originalText}${attachmentInfo}
 
 Please provide a support response that:
 1. Acknowledges the customer's inquiry
@@ -46,7 +62,8 @@ Please provide a support response that:
 5. Is concise but comprehensive
 6. If it's a technical issue, suggests troubleshooting steps
 7. If it's a general inquiry, provides relevant information
-8. Always offers to help further if needed
+8. If attachments are included, acknowledge them and reference their content when relevant to the support issue
+9. Always offers to help further if needed
 
 Generate only the response content, without any additional formatting or explanations.`;
 

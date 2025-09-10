@@ -33,10 +33,29 @@ export const lambdaHandler = async (event) => {
         const emailData = await getEmailFromS3(messageId);
         console.log("Retrieved email data from S3");
         
-        // Process email with Bedrock (categorization and summarization in single call)
-        const aiResult = await categorizeAndSummarizeEmail(emailData);
-        const categorizationResult = aiResult.categorization;
-        const summaryResult = aiResult.summary;
+        // Check for conversation ID in subject or TO email address
+        const conversationId = extractConversationId(emailData);
+        let categorizationResult;
+        let summaryResult;
+        
+        if (conversationId) {
+            // If conversation ID is found, categorize as conversation
+            categorizationResult = {
+                category: "conversation",
+                confidence: 1.0,
+                reasoning: "Conversation ID detected in subject or TO email address"
+            };
+            summaryResult = {
+                summary: "Continuation of existing conversation",
+                wordCount: 4
+            };
+            console.log(`Conversation ID detected: ${conversationId}`);
+        } else {
+            // Process email with Bedrock (categorization and summarization in single call)
+            const aiResult = await categorizeAndSummarizeEmail(emailData);
+            categorizationResult = aiResult.categorization;
+            summaryResult = aiResult.summary;
+        }
         
         // Check for attachments
         const attachmentCount = emailData.emailAttachments.length;
@@ -57,6 +76,7 @@ export const lambdaHandler = async (event) => {
             categorization: categorizationResult,
             summary: summaryResult,
             hasAttachment: hasAttachment,
+            conversationId: conversationId || null,
             processedAt: new Date().toISOString()
         };
         
@@ -89,3 +109,30 @@ export const lambdaHandler = async (event) => {
         };
     }
 };
+
+/**
+ * Extracts conversation ID from email subject or TO address
+ * @param {Object} emailData - The email data object
+ * @returns {string|null} The conversation ID if found, null otherwise
+ */
+function extractConversationId(emailData) {
+    // Check subject line for conversation ID pattern
+    if (emailData.subject) {
+        // Look for pattern like "Re: [conv_abc123] Original Subject"
+        const subjectMatch = emailData.subject.match(/\[conv_([a-zA-Z0-9_-]+)\]/);
+        if (subjectMatch) {
+            return subjectMatch[1];
+        }
+    }
+    
+    // Check TO email address for conversation ID pattern
+    if (emailData.to) {
+        // Look for pattern like "conv_abc123@domain.com"
+        const toMatch = emailData.to.match(/conv_([a-zA-Z0-9_-]+)@/);
+        if (toMatch) {
+            return toMatch[1];
+        }
+    }
+    
+    return null;
+}

@@ -6,7 +6,7 @@
  */
 
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
-import { getEmailFromS3 } from "/opt/s3-operations.mjs";
+import { getEmailFromS3, saveToS3 } from "/opt/s3-operations.mjs";
 import { generateSalesResponse } from "./bedrock-operations.mjs";
 
 const snsClient = new SNSClient({ region: process.env.REGION });
@@ -35,6 +35,25 @@ export const lambdaHandler = async (event) => {
         // Generate AI sales response using Bedrock
         const salesResponse = await generateSalesResponse(emailJson, emailData);
         console.log("Successfully generated sales response from Bedrock");
+        
+        // Save Bedrock response to S3 as llm-response.json
+        const llmResponseData = {
+            messageId: emailData.messageId,
+            category: emailData.categorization?.category || 'sales',
+            confidence: emailData.categorization?.confidence || 0,
+            response: salesResponse,
+            timestamp: new Date().toISOString(),
+            handler: 'sales-handler'
+        };
+        
+        const llmResponseKey = `${emailData.messageId}/llm-response.json`;
+        const saveSuccess = await saveToS3(llmResponseKey, process.env.SENDGRID_INBOUND_PARSE_BUCKET, llmResponseData);
+        
+        if (saveSuccess) {
+            console.log(`Successfully saved LLM response to S3: ${llmResponseKey}`);
+        } else {
+            console.error(`Failed to save LLM response to S3: ${llmResponseKey}`);
+        }
         
         // Format summary object for display
         const formatSummary = (summary) => {

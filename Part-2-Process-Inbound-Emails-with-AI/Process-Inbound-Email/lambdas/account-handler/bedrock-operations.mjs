@@ -28,6 +28,22 @@ export const generateAccountResponse = async (emailJson, emailData) => {
         const confidence = emailData.categorization?.confidence || 0;
         const summary = emailData.summary || {};
         
+        // Build attachment information if available
+        let attachmentInfo = "";
+        if (emailJson.emailAttachments && emailJson.emailAttachments.length > 0) {
+            attachmentInfo = "\n\nATTACHMENTS INCLUDED:\n";
+            emailJson.emailAttachments.forEach((attachment, index) => {
+                attachmentInfo += `${index + 1}. ${attachment.filename || 'Unknown file'} (${attachment.type || 'Unknown type'})`;
+                if (attachment.summary) {
+                    attachmentInfo += `\n   Summary: ${attachment.summary}`;
+                }
+                if (attachment.size) {
+                    attachmentInfo += `\n   Size: ${attachment.size} bytes`;
+                }
+                attachmentInfo += "\n";
+            });
+        }
+        
         // Create a comprehensive prompt for the AI
         const prompt = `You are a professional account management specialist. Please generate a helpful, secure, and professional response to the following account-related inquiry.
 
@@ -36,7 +52,7 @@ CUSTOMER INQUIRY DETAILS:
 - Subject: ${originalSubject}
 - Category: ${category} (confidence: ${confidence})
 - Summary: ${JSON.stringify(summary)}
-- Original Message: ${originalText}
+- Original Message: ${originalText}${attachmentInfo}
 
 Please provide an account response that:
 1. Acknowledges the customer's account inquiry with professionalism
@@ -48,9 +64,10 @@ Please provide an account response that:
 7. If they're asking about account changes, explain the process and requirements
 8. If they're asking about account access, provide security-conscious guidance
 9. If they're asking about account status, provide current status information
-10. Always emphasize security and verification when appropriate
-11. Offer to connect them with the appropriate account specialist if needed
-12. Include a clear call-to-action for next steps
+10. If attachments are included, acknowledge them and reference their content when relevant to the account inquiry
+11. Always emphasize security and verification when appropriate
+12. Offer to connect them with the appropriate account specialist if needed
+13. Include a clear call-to-action for next steps
 
 Generate only the response content, without any additional formatting or explanations.`;
 

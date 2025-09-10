@@ -1,0 +1,17 @@
+{
+    "name": "conversation-email-handler",
+    "version": "1.0.0",
+    "description": "Lambda function to handle conversation-related emails with conversation tracking",
+    "main": "app.mjs",
+    "repository": "",
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "@aws-sdk/client-sns": "^3.0.0",
+        "@aws-sdk/client-bedrock-runtime": "^3.0.0",
+        "@aws-sdk/client-s3": "^3.0.0",
+        "nanoid": "^5.0.0"
+    },
+    "scripts": {},
+    "devDependencies": {}
+}

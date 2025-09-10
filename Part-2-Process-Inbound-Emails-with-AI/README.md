@@ -16,10 +16,11 @@ This solution creates an intelligent email processing pipeline that:
 ## 🎯 Why This Project is Helpful
 
 ### **AI-Powered Email Intelligence**
-- **Smart Categorization**: Automatically classifies emails into sales, support, account, and inquiry categories
+- **Smart Categorization**: Automatically classifies emails into sales, support, account, inquiry, and conversation categories
 - **Content Summarization**: Generates concise summaries for quick understanding
 - **Confidence Scoring**: Provides AI confidence levels for decision transparency
 - **Context Awareness**: Considers email metadata, attachments, and content structure
+- **Attachment Intelligence**: All handlers include attachment context in AI prompts for more informed responses
 
 ### **Intelligent Automation**
 - **Event-Driven Architecture**: Uses EventBridge for flexible, scalable event routing
@@ -38,6 +39,7 @@ This solution creates an intelligent email processing pipeline that:
 - **Sales Lead Processing**: Identify and prioritize sales opportunities from inbound emails
 - **Account Management**: Handle account-related inquiries and updates automatically
 - **General Inquiries**: Route and respond to general information requests
+- **Conversation Management**: Maintain context-aware email threads and conversational responses
 - **Document Processing**: Analyze and process email attachments with AI-generated summaries
 
 ## 🏗️ Architecture Overview
@@ -67,6 +69,10 @@ This solution creates an intelligent email processing pipeline that:
 │  │   Sales     │  │  Support    │  │   Account   │  │  Inquiry    │             │
 │  │  Handler    │  │  Handler    │  │  Handler    │  │  Handler    │             │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘             │
+│                                                                                 │
+│  ┌─────────────────────────────────────────────────────────────────────────┐    │
+│  │                    Conversation Handler                                 │    │
+│  └─────────────────────────────────────────────────────────────────────────┘    │
 │                                                                                 │
 │  ┌─────────────────────────────────────────────────────────────────────────┐    │
 │  │              Process Attachments Handler                                │    │
@@ -105,6 +111,7 @@ Part-2-Process-Inbound-Emails-with-AI/
 │   │   ├── support-handler/          # Support email processor
 │   │   ├── account-handler/          # Account email processor
 │   │   ├── inquiry-handler/          # Inquiry email processor
+│   │   ├── conversation-handler/     # Conversation email processor
 │   │   └── process-attachments/      # Attachment processor
 │   ├── template.yaml                 # SAM template
 │   └── README.md                     # AI processing setup

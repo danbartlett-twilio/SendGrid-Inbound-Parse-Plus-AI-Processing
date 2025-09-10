@@ -22,16 +22,17 @@ Email Details:
 - Body: ${emailData.emailContent['text/plain'] || emailData.emailContent['text/html'] || 'No content'}
 
 IMPORTANT CATEGORIZATION RULES:
-- If you are uncertain about the category or if the email doesn't clearly fit into sales, support, or account categories, DEFAULT TO "inquiry"
+- If you are uncertain about the category or if the email doesn't clearly fit into sales, support, account, or conversation categories, DEFAULT TO "inquiry"
 - Only use "sales" for clear sales-related inquiries (pricing, product demos, purchase intent)
 - Only use "support" for technical issues, bug reports, or customer service problems
 - Only use "account" for billing, account changes, login issues, or account-specific matters
+- Only use "conversation" for casual conversations, friendly chats, or when the sender wants to have a casual conversation about something
 - Use "inquiry" for general questions, information requests, or when the intent is unclear
 
 Please respond with a JSON object in this exact format:
 {
     "categorization": {
-        "category": "one of: sales, support, account, inquiry",
+        "category": "one of: sales, support, account, inquiry, conversation",
         "confidence": "a number between 0 and 1",
         "reasoning": "brief explanation of why this category was chosen (under 50 words)"
     },

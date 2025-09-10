@@ -28,6 +28,22 @@ export const generateInquiryResponse = async (emailJson, emailData) => {
         const confidence = emailData.categorization?.confidence || 0;
         const summary = emailData.summary || {};
         
+        // Build attachment information if available
+        let attachmentInfo = "";
+        if (emailJson.emailAttachments && emailJson.emailAttachments.length > 0) {
+            attachmentInfo = "\n\nATTACHMENTS INCLUDED:\n";
+            emailJson.emailAttachments.forEach((attachment, index) => {
+                attachmentInfo += `${index + 1}. ${attachment.filename || 'Unknown file'} (${attachment.type || 'Unknown type'})`;
+                if (attachment.summary) {
+                    attachmentInfo += `\n   Summary: ${attachment.summary}`;
+                }
+                if (attachment.size) {
+                    attachmentInfo += `\n   Size: ${attachment.size} bytes`;
+                }
+                attachmentInfo += "\n";
+            });
+        }
+        
         // Create a comprehensive prompt for the AI
         const prompt = `You are a helpful customer service representative. Please generate a friendly, informative, and professional response to the following general inquiry.
 
@@ -36,7 +52,7 @@ CUSTOMER INQUIRY DETAILS:
 - Subject: ${originalSubject}
 - Category: ${category} (confidence: ${confidence})
 - Summary: ${JSON.stringify(summary)}
-- Original Message: ${originalText}
+- Original Message: ${originalText}${attachmentInfo}
 
 Please provide a general inquiry response that:
 1. Acknowledges the customer's inquiry with warmth and appreciation
@@ -48,8 +64,9 @@ Please provide a general inquiry response that:
 7. If they're asking about processes, explain the steps clearly
 8. If they're asking about policies, provide relevant policy information
 9. If they're asking about services, describe what's available
-10. Always offer additional assistance and provide contact information for further help
-11. Include a clear call-to-action for next steps if appropriate
+10. If attachments are included, acknowledge them and reference their content when relevant to the inquiry
+11. Always offer additional assistance and provide contact information for further help
+12. Include a clear call-to-action for next steps if appropriate
 
 Generate only the response content, without any additional formatting or explanations.`;
 

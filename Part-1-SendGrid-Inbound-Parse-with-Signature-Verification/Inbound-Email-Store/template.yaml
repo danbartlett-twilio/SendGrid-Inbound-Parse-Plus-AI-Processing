@@ -163,6 +163,8 @@ Resources:
         AllowMethods: "'POST'"
         AllowHeaders: "'*'"
         AllowOrigin: "'*'"
+      # Note: API Gateway has a hard limit of 10MB payload size that cannot be increased
+      # For larger emails with attachments, consider using S3 direct upload with pre-signed URLs
   
   ##########################################################################
   #  Lambda Layers
@@ -199,11 +201,11 @@ Resources:
       Runtime: nodejs20.x
       Architectures:
         - arm64      
-      Timeout: 30
-      MemorySize: 512      
-      # Increase Timeout and MemorySize if you are goign to be handling large emails / large attachments.
-      #MemorySize: 1024  # Increase from default 128MB
-      #Timeout: 300      # Increase timeout for large emails
+      Timeout: 60
+      MemorySize: 1024      
+      # Increased Timeout and MemorySize to handle larger emails / large attachments.
+      # MemorySize: 1024  # Increased from 512MB to handle larger payloads
+      # Timeout: 60       # Increased timeout for processing larger emails
       Environment:
         Variables:          
           RAW_INBOUND_EMAIL_BUCKET: !Ref RawInboundEmailsBucketName
@@ -255,11 +257,11 @@ Resources:
       Runtime: nodejs20.x
       Architectures:
         - arm64
-      Timeout: 30
-      MemorySize: 512
-      # Increase Timeout and MemorySize if you are goign to be handling large emails / large attachments.
-      #MemorySize: 1024  # Increase from default 128MB
-      #Timeout: 300      # Increase timeout for large emails
+      Timeout: 60
+      MemorySize: 1024
+      # Increased Timeout and MemorySize to handle larger emails / large attachments.
+      # MemorySize: 1024  # Increased from 512MB to handle larger payloads
+      # Timeout: 60       # Increased timeout for processing larger emails
       Environment:
         Variables:          
           SNStopic: !Ref SGInboundEmailTopic          

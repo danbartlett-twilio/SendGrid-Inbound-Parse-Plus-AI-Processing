@@ -124,17 +124,18 @@ cd SendGrid-Inbound-Parse-plus-AI-Processing
 cp global.properties.example global.properties
 cp aws-profile.profile.example aws-profile.profile
 
-# Edit global.properties with your values
 # Edit aws-profile.profile with your AWS profile
+# You will edit the values in global.properties as you work through the project
+
 ```
 
 #### Configuration Files Explained
 
-**`global.properties`**
-This file contains all the configuration parameters needed for the system. The file is self-explanatory with clear parameter names and placeholder values.
-
 **`aws-profile.profile`**
 This file specifies which AWS profile to use for deployment. AWS profiles are locally stored configurations that contain credentials and settings for different AWS accounts or regions.
+
+**`global.properties`**
+This file contains all the configuration parameters needed for the system. The file is self-explanatory with clear parameter names and placeholder values.
 
 **Understanding AWS Profiles:**
 - AWS profiles are stored in `~/.aws/credentials` and `~/.aws/config` files
@@ -163,34 +164,7 @@ or
 default
 ```
 
-### 2. Configure Required Parameters
-
-Make a copy of the global.properties.example file to entre your variables.
-
-```
-cp global.properties.example global.properties
-```
-
-You will edit `global.properties` with your specific values once you start working on Part 1. For now you can leave all of the values as is (default values).
-
-```properties
-# S3 bucket for email storage (must be globally unique)
-RawInboundEmailsBucketName="your-company-inbound-emails-abc123"
-
-# SendGrid webhook public key for signature verification
-SendGridWebhookPublicKey="MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE..."
-
-# AWS Bedrock model for AI processing (Part 2)
-BedrockModelIdForCategoryAndSummary="anthropic.claude-3-haiku-20240307-v1:0"
-BedrockModelIdForAttachmentAnalysis="anthropic.claude-3-haiku-20240307-v1:0"
-
-# SendGrid configuration for outbound emails (Part 2)
-SendGridOutboundEmailApiKeyId="your-sendgrid-api-key-id"
-SendGridOutboundEmailDomainName="yourdomain.com"
-```
-
-
-## 📚 Detailed Documentation
+## 📚 Detailed Documentation and next steps
 
 Go to the README files linked below for instruction on first deploying Part 1 and then Part 2.
 

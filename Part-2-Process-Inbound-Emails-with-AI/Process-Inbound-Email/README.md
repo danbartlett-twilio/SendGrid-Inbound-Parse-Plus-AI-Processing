@@ -131,6 +131,8 @@ Each category handler automatically saves its AI-generated response to S3 as `ll
 
 ### 1. Configure AWS Bedrock
 
+You can use whatever model you like. We chose `anthropic.claude-3-haiku-20240307-v1:0` because it can handle attachments. You could certainly choose one model to analyze the text of the inbound emails and another to analyze attachments. Model choice should reflect your business requirements and factor in functionality, performance, and cost. 
+
 1. **Enable Bedrock Access**:
    - Navigate to AWS Bedrock console
    - Request access to Claude models (anthropic.claude-3-haiku-20240307-v1:0)
@@ -145,14 +147,8 @@ Each category handler automatically saves its AI-generated response to S3 as `ll
 Edit the `../../global.properties` file with your Bedrock configuration:
 
 ```properties
-# AWS Bedrock model ID for categorization and summarization
 BedrockModelIdForCategoryAndSummary="anthropic.claude-3-haiku-20240307-v1:0"
-
-# AWS region for deployment
-AWSRegion="us-east-1"
-
-# Environment for resource naming
-Environment="dev"
+BedrockModelIdForAttachmentAnalysis=anthropic.claude-3-5-sonnet-20240620-v1:0
 ```
 
 ### 3. Build the Application
@@ -163,11 +159,7 @@ sam build
 
 **Note:** Run this command from the `Process-Inbound-Email` directory every time before deploying.
 
-### 4. Configure AWS Profile
-
-Ensure your AWS profile is configured in the `../../aws-profile.profile` file, or modify the deploy commands to use your preferred authentication method.
-
-### 5. Deploy the Stack
+### 4. Deploy the Stack
 
 #### First Time Deployment (Guided)
 
@@ -486,7 +478,6 @@ For issues or questions:
 2. Review Bedrock access and model availability
 3. Verify EventBridge rules and routing
 4. Check S3 bucket access and permissions
-5. Create an issue in the project repository
 
 ## Next Steps
 

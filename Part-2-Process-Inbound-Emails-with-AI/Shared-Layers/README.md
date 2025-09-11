@@ -1,33 +1,32 @@
 # Shared Layers
 
-A collection of reusable AWS Lambda layers that provide common functionality for email processing operations across the Part-2 microservices. These layers contain shared code for S3 operations, Bedrock AI operations, and EventBridge event publishing.
+A collection of reusable AWS Lambda layers that provide common functionality for email processing operations across the Part-2 microservices. These layers contain shared code for S3 operations and EventBridge event publishing.
 
 ## Overview
 
-This stack creates three Lambda layers that encapsulate common operations used by multiple Lambda functions in the email processing pipeline:
+This stack creates two Lambda layers that encapsulate common operations used by multiple Lambda functions in the email processing pipeline:
 
 - **S3 Operations Layer**: Common S3 read/write operations for email data
-- **Bedrock Operations Layer**: AI processing operations using AWS Bedrock
 - **EventBridge Operations Layer**: Event publishing and routing operations
 
 ## Architecture
 
 ```
-┌─────────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐
-│   S3 Operations     │    │  Bedrock Operations │    │ EventBridge         │
-│      Layer          │    │      Layer          │    │ Operations Layer    │
-│                     │    │                     │    │                     │
-│ • Read email data   │    │ • AI categorization │    │ • Publish events    │
-│ • Write results     │    │ • Content summary   │    │ • Route messages    │
-│ • Handle errors     │    │ • Handle responses  │    │ • Manage routing    │
-└─────────────────────┘    └─────────────────────┘    └─────────────────────┘
-           │                           │                           │
-           └───────────────────────────┼───────────────────────────┘
-                                       │
-                              ┌─────────────────┐
-                              │ Lambda Functions│
-                              │ (Consumers)     │
-                              └─────────────────┘
+┌─────────────────────┐    ┌─────────────────────┐
+│   S3 Operations     │    │ EventBridge         │
+│      Layer          │    │ Operations Layer    │
+│                     │    │                     │
+│ • Read email data   │    │ • Publish events    │
+│ • Write results     │    │ • Route messages    │
+│ • Handle errors     │    │ • Manage routing    │
+└─────────────────────┘    └─────────────────────┘
+           │                           │
+           └───────────────────────────┘
+                       │
+              ┌─────────────────┐
+              │ Lambda Functions│
+              │ (Consumers)     │
+              └─────────────────┘
 ```
 
 ## Prerequisites
@@ -54,9 +53,6 @@ Install required Node.js libraries for each layer:
 ```bash
 # Install S3 operations dependencies
 npm --prefix ./layer-s3-operations install
-
-# Install Bedrock operations dependencies  
-npm --prefix ./layer-bedrock-operations install
 
 # Install EventBridge operations dependencies
 npm --prefix ./layer-eventbridge-operations install
@@ -112,18 +108,6 @@ sam deploy \
 **Dependencies**:
 - `@aws-sdk/client-s3`: AWS SDK for S3 operations
 
-### Bedrock Operations Layer
-
-**Purpose**: Provides AI processing capabilities using AWS Bedrock.
-
-**Key Functions**:
-- `categorizeAndSummarizeEmail(emailContent)`: Single call for categorization and summarization
-- `processWithBedrock(prompt, modelId)`: Generic Bedrock processing
-- `handleBedrockResponse(response)`: Standardized response processing
-
-**Dependencies**:
-- `@aws-sdk/client-bedrock-runtime`: AWS SDK for Bedrock operations
-
 ### EventBridge Operations Layer
 
 **Purpose**: Provides event publishing and routing capabilities.
@@ -143,9 +127,6 @@ Shared-Layers/
 ├── layer-s3-operations/              # S3 operations layer
 │   ├── s3-operations.mjs             # S3 utility functions
 │   └── package.json                  # Dependencies
-├── layer-bedrock-operations/         # Bedrock operations layer
-│   ├── bedrock-operations.mjs        # Bedrock utility functions
-│   └── package.json                  # Dependencies
 ├── layer-eventbridge-operations/     # EventBridge operations layer
 │   ├── eventbridge-operations.mjs    # EventBridge utility functions
 │   └── package.json                  # Dependencies
@@ -153,24 +134,9 @@ Shared-Layers/
 └── README.md                         # This file
 ```
 
-## Configuration
-
-### Environment Parameters
-
-The deployment uses parameters from the `../../global.properties` file. Key parameters include:
-
-```properties
-# Environment for layer naming
-Environment="dev"
-
-# AWS region for deployment
-AWSRegion="us-east-1"
-```
-
 ### Layer Naming Convention
 
 Layers are named with environment suffixes:
-- `bedrock-operations-layer-{Environment}`
 - `s3-operations-layer-{Environment}`
 - `eventbridge-operations-layer-{Environment}`
 
@@ -183,7 +149,6 @@ Other stacks import these layers using CloudFormation exports:
 ```yaml
 Layers:
   - !ImportValue SendGridProcessInboundEmails-S3OperationsLayerArn
-  - !ImportValue SendGridProcessInboundEmails-BedrockOperationsLayerArn
   - !ImportValue SendGridProcessInboundEmails-EventBridgeOperationsLayerArn
 ```
 
@@ -195,9 +160,6 @@ In your Lambda functions, import and use the layer functions:
 // S3 Operations
 import { getEmailData, saveProcessingResults } from '/opt/s3-operations.mjs';
 
-// Bedrock Operations
-import { categorizeAndSummarizeEmail } from '/opt/bedrock-operations.mjs';
-
 // EventBridge Operations
 import { publishEmailEvent } from '/opt/eventbridge-operations.mjs';
 ```
@@ -206,7 +168,6 @@ import { publishEmailEvent } from '/opt/eventbridge-operations.mjs';
 
 The stack exports the following values for use by other stacks:
 
-- **BedrockOperationsLayerArn**: ARN of the Bedrock operations layer
 - **S3OperationsLayerArn**: ARN of the S3 operations layer  
 - **EventBridgeOperationsLayerArn**: ARN of the EventBridge operations layer
 
@@ -265,6 +226,6 @@ For issues or questions:
 
 After successful deployment:
 1. Deploy the `Outbound-Emails` stack (depends on S3 layer)
-2. Deploy the `Process-Inbound-Email` stack (depends on all layers)
+2. Deploy the `Process-Inbound-Email` stack (depends on both layers)
 3. Test layer functionality through consuming Lambda functions
 4. Monitor layer usage and performance

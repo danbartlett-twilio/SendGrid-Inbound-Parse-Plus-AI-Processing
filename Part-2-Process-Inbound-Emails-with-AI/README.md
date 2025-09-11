@@ -130,62 +130,17 @@ Part-2-Process-Inbound-Emails-with-AI/
 - AWS Bedrock access configured
 - **Part-1 stacks deployed** (Inbound-Email-Store and Generic-Inbound-Event-Handler)
 
-### 1. Clone and Configure
-
-```bash
-git clone <repository-url>
-cd Part-2-Process-Inbound-Emails-with-AI
-
-# Copy and configure your settings
-cp ../../global.properties.example ../../global.properties
-cp ../../aws-profile.profile.example ../../aws-profile.profile
-
-# Edit ../../global.properties with your values
-# Edit ../../aws-profile.profile with your AWS profile
-```
-
-### 2. Configure Bedrock Access
-
-1. **Enable Bedrock Access**:
-   - Navigate to AWS Bedrock console
-   - Request access to Claude models (anthropic.claude-3-haiku-20240307-v1:0)
-   - Wait for access approval (may take several hours)
-
-2. **Update Configuration**:
-   ```properties
-   # Add to ../../global.properties
-   BedrockModelIdForCategoryAndSummary="anthropic.claude-3-haiku-20240307-v1:0"
-   ```
-
-### 3. Deploy in Order
+### Deploy in Order
 
 **⚠️ CRITICAL**: Deploy stacks in this exact order:
 
-#### Step 1: Deploy Shared Layers (REQUIRED FIRST)
+#### [Step 1: Deploy Shared Layers](./Shared-Layers/README.md) (REQUIRED FIRST)
 
-```bash
-cd Shared-Layers
-sam build
-sam deploy --guided
-```
+#### [Step 2: Deploy Outbound Emails](./Outbound-Emails/README.md) (REQUIRED SECOND)
 
-#### Step 2: Deploy Outbound Emails (REQUIRED SECOND)
+#### [Step 3: Deploy Process Inbound Email](./Process-Inbound-Email/README.md) (DEPLOY LAST)
 
-```bash
-cd ../Outbound-Emails
-sam build
-sam deploy --guided
-```
-
-#### Step 3: Deploy Process Inbound Email (DEPLOY LAST)
-
-```bash
-cd ../Process-Inbound-Email
-sam build
-sam deploy --guided
-```
-
-### 4. Test the System
+### After Deploying, Test the System
 
 1. Send a test email to your configured inbound parse address
 2. Monitor CloudWatch logs for processing
@@ -212,34 +167,6 @@ The AI processing system. See [`Process-Inbound-Email/README.md`](./Process-Inbo
 - EventBridge routing and handlers
 - Customization and extension patterns
 
-## 🔧 Configuration
-
-### Required Parameters
-
-Edit `../../global.properties` with your specific values:
-
-```properties
-# AWS Bedrock model for AI processing
-BedrockModelIdForCategoryAndSummary="anthropic.claude-3-haiku-20240307-v1:0"
-
-# Environment for resource naming
-Environment="dev"
-
-# AWS region for deployment
-AWSRegion="us-east-1"
-
-# SendGrid configuration (for outbound emails)
-SendGridOutboundEmailApiKeyId="your-sendgrid-api-key-id"
-SendGridOutboundEmailDomainName="yourdomain.com"
-```
-
-### AWS Profile
-
-Configure your AWS profile in `../../aws-profile.profile`:
-
-```bash
-your-aws-profile-name
-```
 
 ## 🛡️ Security Features
 
@@ -312,16 +239,6 @@ If you encounter dependency errors:
 2. **Check Outbound-Emails**: Verify it can import Shared-Layers dependencies
 3. **Confirm Process-Inbound-Email**: Ensure it can import both previous stacks' exports
 
-## 🤝 Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Update documentation
-6. Submit a pull request
 
 ## 📄 License
 

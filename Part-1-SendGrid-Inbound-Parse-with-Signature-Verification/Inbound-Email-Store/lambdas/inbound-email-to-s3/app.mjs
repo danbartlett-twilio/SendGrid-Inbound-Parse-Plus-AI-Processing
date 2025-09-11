@@ -71,9 +71,16 @@ export const lambdaHandler = async (event) => {
 
       // Validate the SendGrid signature
       let validInbound = await validateSendGridSignature(event.body, xSig, xTs, publicKey)
-      
+
       // PASS or FAIL (true / false )
       console.log("This is an email sent from SendGrid Inbound Parse => ", validInbound);
+
+      /**
+       * OPTIONALLY stop processing emails with invalid signatures here.
+       * This app currently adds a "fail" prefix to the S3 object key and additional
+       * processing in the handle-sqs-messages lambda. Up to you to decide 
+       * how to handle messages with invalid signatures.
+       */
 
       // Extract boundary from Content-Type header (used to parse the email contents in the next lambda)
       let boundary = extractBoundary(event.headers['Content-Type']);

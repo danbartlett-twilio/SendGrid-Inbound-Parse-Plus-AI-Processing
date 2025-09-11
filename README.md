@@ -111,7 +111,7 @@ SendGrid-Inbound-Parse-plus-AI-Processing/
 - AWS CLI configured with appropriate permissions
 - AWS SAM CLI installed
 - Node.js runtime environment
-- SendGrid account with Inbound Parse configured
+- SendGrid account with an API Key with adequate permissions 
 - AWS Bedrock access (for Part 2)
 
 ### 1. Clone and Configure
@@ -165,7 +165,13 @@ default
 
 ### 2. Configure Required Parameters
 
-Edit `global.properties` with your specific values:
+Make a copy of the global.properties.example file to entre your variables.
+
+```
+cp global.properties.example global.properties
+```
+
+You will edit `global.properties` with your specific values once you start working on Part 1. For now you can leave all of the values as is (default values).
 
 ```properties
 # S3 bucket for email storage (must be globally unique)
@@ -183,59 +189,10 @@ SendGridOutboundEmailApiKeyId="your-sendgrid-api-key-id"
 SendGridOutboundEmailDomainName="yourdomain.com"
 ```
 
-### 3. Deploy Part 1: Email Reception
-
-```bash
-cd Part-1-SendGrid-Inbound-Parse-with-Signature-Verification
-
-# Deploy the main email processing stack
-cd Inbound-Email-Store
-sam build
-sam deploy --guided
-
-# Deploy the event handler
-cd ../Generic-Inbound-Event-Handler
-sam build
-sam deploy --guided
-```
-
-### 4. Configure SendGrid (Part 1)
-
-1. Get the API Gateway endpoint from your stack outputs
-2. Configure SendGrid Inbound Parse webhook with the endpoint
-3. Test email delivery
-
-### 5. Deploy Part 2: AI Processing (Optional)
-
-**⚠️ Prerequisites**: Part 1 must be deployed first
-
-```bash
-cd ../../Part-2-Process-Inbound-Emails-with-AI
-
-# Deploy in this exact order:
-# 1. Shared Layers
-cd Shared-Layers
-sam build
-sam deploy --guided
-
-# 2. Outbound Emails
-cd ../Outbound-Emails
-sam build
-sam deploy --guided
-
-# 3. AI Processing
-cd ../Process-Inbound-Email
-sam build
-sam deploy --guided
-```
-
-### 6. Enable Bedrock Access (Part 2)
-
-1. Navigate to AWS Bedrock console
-2. Request access to Claude models
-3. Wait for access approval (may take several hours)
 
 ## 📚 Detailed Documentation
+
+Go to the README files linked below for instruction on first deploying Part 1 and then Part 2.
 
 ### **Part 1: Email Reception**
 See [`Part-1-SendGrid-Inbound-Parse-with-Signature-Verification/README.md`](./Part-1-SendGrid-Inbound-Parse-with-Signature-Verification/README.md) for:
@@ -246,6 +203,7 @@ See [`Part-1-SendGrid-Inbound-Parse-with-Signature-Verification/README.md`](./Pa
 
 ### **Part 2: AI Processing**
 See [`Part-2-Process-Inbound-Emails-with-AI/README.md`](./Part-2-Process-Inbound-Emails-with-AI/README.md) for:
+- Part 1 is required for Part 2!
 - AI categorization and summarization setup
 - EventBridge routing and handlers
 - Customization and extension patterns
@@ -330,8 +288,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🙏 Acknowledgments
 
+- Features SendGrid Inbound Parse secured with Signature Verification
 - Built with AWS Serverless Application Model (SAM)
-- Uses SendGrid Inbound Parse webhook system
 - Leverages AWS Bedrock for AI processing capabilities
 - Uses EventBridge for event-driven architecture
 - Inspired by modern serverless and AI architecture patterns

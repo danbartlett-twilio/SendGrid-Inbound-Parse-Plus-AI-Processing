@@ -54,7 +54,7 @@ This application creates a complete outbound email processing system that:
    - Copy the API key for configuration
 
 2. **Configure Domain Authentication**:
-   - Set up domain authentication in SendGrid
+   - Be sure to set up domain authentication in SendGrid
    - Note your verified domain name
 
 ### 2. Update Configuration
@@ -66,10 +66,8 @@ Edit the `../../global.properties` file with your SendGrid configuration:
 SendGridOutboundEmailApiKeyId="your-sendgrid-api-key-id"
 
 # SendGrid verified domain name
-SendGridOutboundEmailDomainName="yourdomain.com"
+SendGridOutboundEmailDomainName="@yourdomain.com"
 
-# AWS region for deployment
-AWSRegion="us-east-1"
 ```
 
 ### 3. Build the Application
@@ -80,11 +78,7 @@ sam build
 
 **Note:** Run this command from the `Outbound-Emails` directory every time before deploying.
 
-### 4. Configure AWS Profile
-
-Ensure your AWS profile is configured in the `../../aws-profile.profile` file, or modify the deploy commands to use your preferred authentication method.
-
-### 5. Deploy the Stack
+### 4. Deploy the Stack
 
 #### First Time Deployment (Guided)
 
@@ -292,7 +286,6 @@ For issues or questions:
 1. Check CloudWatch logs for error details
 2. Review SendGrid dashboard for delivery issues
 3. Verify SNS topic configuration and permissions
-4. Create an issue in the project repository
 
 ## Next Steps
 

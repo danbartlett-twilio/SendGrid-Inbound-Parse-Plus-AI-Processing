@@ -1,244 +1,358 @@
 # SendGrid Inbound Parse with Signature Verification
 
-A complete AWS serverless solution for securely receiving, processing, and handling inbound emails through SendGrid's Inbound Parse webhook system. This project provides enterprise-grade email processing capabilities with signature verification, attachment handling, and extensible business logic.
+A comprehensive AWS serverless solution for processing inbound emails from SendGrid's Inbound Parse webhook. This system provides secure email reception, parsing, storage, and processing capabilities with signature verification.
 
-## 🚀 What This Project Does
+## Overview
 
-This solution creates a robust email processing pipeline that:
+This application creates a complete email processing pipeline that:
+- Receives emails via SendGrid Inbound Parse webhook
+- Validates email signatures for security
+- Parses email content and attachments
+- Stores processed data in S3
+- Publishes metadata to SNS for downstream processing
+- Provides extensible architecture for custom business logic
 
-- **Securely receives emails** via SendGrid Inbound Parse webhook with signature verification
-- **Processes email content** including parsing, attachment extraction, and metadata extraction
-- **Stores email data** in S3 with organized structure for easy retrieval
-- **Provides extensible architecture** for implementing custom business logic
-- **Handles large volumes** with scalable serverless components
-
-## 🎯 Why This Project is Helpful
-
-### **Enterprise-Ready Email Processing**
-- **Security First**: Built-in signature verification ensures emails are authentic
-- **Scalable Architecture**: Serverless design handles varying email volumes automatically
-- **Cost Effective**: Pay only for what you use with AWS Lambda and S3
-- **Reliable**: Built-in error handling, retry logic, and dead letter queues
-
-### **Developer-Friendly**
-- **Modular Design**: Separate concerns for easy maintenance and testing
-- **Extensible**: Clean interfaces for adding custom business logic
-- **Well Documented**: Comprehensive documentation and examples
-- **Production Ready**: Includes monitoring, logging, and troubleshooting guides
-
-### **Common Use Cases**
-- **Customer Support**: Automatically categorize and route support emails
-- **Lead Processing**: Extract and process lead information from contact forms
-- **Document Processing**: Handle email attachments and extract data
-- **Notification Systems**: Process inbound notifications and trigger workflows
-- **Email Analytics**: Analyze email patterns and content for insights
-
-## 🏗️ Architecture Overview
+## Architecture
 
 ```
-┌─────────────┐    ┌──────────────┐    ┌─────────────┐    ┌─────────────┐
-│   SendGrid  │───▶│ API Gateway  │───▶│   Lambda    │───▶│     S3      │
-│Inbound Parse│    │              │    │(inbound-    │    │   Storage   │
-│   Webhook   │    │              │    │email-to-s3) │    │             │
-└─────────────┘    └──────────────┘    └─────────────┘    └─────────────┘
-                                                                    │
-                                                                    ▼
-┌─────────────┐    ┌──────────────┐    ┌─────────────┐    ┌─────────────┐
-│   SNS Topic │◀───│     SQS      │◀───│   Lambda    │◀───│     S3      │
-│             │    │    Queue     │    │(handle-sqs- │    │   Storage   │
-│             │    │              │    │ messages)   │    │             │
-└─────────────┘    └──────────────┘    └─────────────┘    └─────────────┘
-       │
-       ▼
-┌─────────────┐
-│   Lambda    │
-│(Generic     │
-│ Event       │
-│ Handler)    │
-└─────────────┘
+SendGrid → API Gateway → Lambda (inbound-email-to-s3) → S3
+                                    ↓
+                              SQS Queue → Lambda (handle-sqs-messages) → S3 + SNS
+                                                                           ↓
+                                                              Generic Event Handler
 ```
 
-## 📁 Project Structure
+### Components
 
-```
-SendGrid-Inbound-Parse-with-Signature-Verification/
-├── Inbound-Email-Store/              # Main email processing stack
-│   ├── lambdas/
-│   │   ├── inbound-email-to-s3/      # Webhook receiver & validator
-│   │   └── handle-sqs-messages/      # Email processor & parser
-│   ├── layers/                       # Shared Lambda layers
-│   ├── template.yaml                 # SAM template
-│   └── README.md                     # Detailed setup instructions
-├── Generic-Inbound-Event-Handler/    # Custom business logic stack
-│   ├── lambdas/
-│   │   └── generic-handler/          # Your custom logic goes here
-│   ├── template.yaml                 # SAM template
-│   └── README.md                     # Customization guide
-├── ../../global.properties           # Configuration parameters
-├── ../../aws-profile.profile         # AWS profile configuration
-└── README.md                         # This file
-```
+#### Core Email Processing Stack (Inbound-Email-Store)
+- **API Gateway**: Receives webhook calls from SendGrid
+- **inbound-email-to-s3**: Validates signatures and stores raw emails
+- **SQS Queue**: Buffers email processing requests
+- **handle-sqs-messages**: Parses emails and extracts attachments
+- **S3 Buckets**: Store raw emails, parsed data, and attachments
+- **SNS Topic**: Publishes email metadata for downstream processing
 
-## 🚀 Quick Start
+#### Business Logic Stack (Generic-Inbound-Event-Handler)
+- **Generic Event Handler**: Processes SNS messages and implements custom business logic
 
-### Prerequisites
+## Prerequisites
 
 - AWS CLI configured with appropriate permissions
 - AWS SAM CLI installed
 - Node.js runtime environment
 - SendGrid account with Inbound Parse configured
+- Unique S3 bucket name for email storage
 
-### 1. Clone and Configure
+## Setup Instructions
+
+### 1. Install Dependencies
+
+Install required Node.js libraries for the Lambda layers:
 
 ```bash
-git clone <repository-url>
-cd SendGrid-Inbound-Parse-with-Signature-Verification
-
-# Copy and configure your settings
-cp ../../global.properties.example ../../global.properties
-cp ../../aws-profile.profile.example ../../aws-profile.profile
-
-# Edit ../../global.properties with your values
-# Edit ../../aws-profile.profile with your AWS profile
+cd Inbound-Email-Store
+npm --prefix ./layers/layer-parse-multipart-data/nodejs install
+npm --prefix ./layers/layer-validate-signature install
 ```
 
-### 2. Deploy the Main Stack
+### 2. Create S3 Bucket
+
+Create a new S3 bucket to store the raw version of the inbound emails:
+
+```bash
+# Using AWS CLI
+aws s3 mb s3://your-unique-bucket-name
+
+# Or create via AWS Console
+```
+
+**Important:** S3 bucket names must be globally unique. Choose a descriptive name like `your-company-inbound-emails-2024`.
+
+**Important:** Copy the name of this new bucket and place as the value for the `RawInboundEmailsBucketName` property in your `global.properties` file in the root directory of the project.
+
+### 3. Deploy the Main Email Processing Stack (INBOUND-EMAIL-STORE)
+
+This will spin up a new CloudFormation stack with multiple resources.
 
 ```bash
 cd Inbound-Email-Store
 sam build
-sam deploy --guided
+
+# First time deployment (guided)
+sam deploy --guided \
+  --stack-name INBOUND-EMAIL-STORE \
+  --template template.yaml \
+  --profile $(cat ../../aws-profile.profile) \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides $(cat ../../global.properties | tr '\n' ' ')
+
+# Subsequent deployments
+sam deploy \
+  --stack-name INBOUND-EMAIL-STORE \
+  --template template.yaml \
+  --profile $(cat ../../aws-profile.profile) \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides $(cat ../../global.properties | tr '\n' ' ')
 ```
 
-### 3. Deploy the Event Handler
+**Important:** Once this stack finishes deploying, take the output from the command for the value `SGInboundEmailToS3Api`. This is the endpoint where SendGrid will POST inbound emails. Copy this value as we will need it later.
+
+### 4. Deploy the Generic Event Handler
+
+This spins up a simple lambda file that subscribes to the SNS topic the publishes when emails have finished processing. This is just a stub for whatever functionality you want to add. Part 2 picks up here!
 
 ```bash
 cd ../Generic-Inbound-Event-Handler
 sam build
-sam deploy --guided
+
+# First time deployment (guided)
+sam deploy --guided \
+  --stack-name GENERIC-INBOUND-EVENT-HANDLER \
+  --template template.yaml \
+  --profile $(cat ../../aws-profile.profile) \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides $(cat ../../global.properties | tr '\n' ' ')
+
+# Subsequent deployments
+sam deploy \
+  --stack-name GENERIC-INBOUND-EVENT-HANDLER \
+  --template template.yaml \
+  --profile $(cat ../../aws-profile.profile) \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides $(cat ../../global.properties | tr '\n' ' ')
 ```
 
-### 4. Configure SendGrid
+### 5. Configure SendGrid Webhook Public Key
 
-1. Get the API Gateway endpoint from your stack outputs
-2. Configure SendGrid Inbound Parse webhook with the endpoint
-3. Test email delivery
+Now we need to create setup a Inbound Parse webook.
 
-## 📚 Detailed Documentation
+1. Decide on the [`authenticated email domain`](https://www.twilio.com/docs/sendgrid/ui/account-and-settings/how-to-set-up-domain-authentication) that you want to use to receive inbound emails
+2. Set up the proper MX records in your DNS provider [[`more details`](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook#set-up-an-mx-record)]
+3. Log into your SendGrid account
+2. Navigate to **Settings** →  **Inbound Parse**
+3. Click **Add Host & URL** to create a new Inbound Parse
+4. Enter the subdomain and select your verified domain from the dropdown list
+5. In the **Destination URL** enter the endpoint that you copied from at the end of strep 3 above
+6. Check the box that says **POST the raw, fill MIME message**
+7. Click **Add**
 
-### **Inbound-Email-Store**
-The core email processing system. See [`Inbound-Email-Store/README.md`](./Inbound-Email-Store/README.md) for:
-- Complete setup and deployment instructions
-- Architecture details and component descriptions
-- Configuration options and security features
-- Troubleshooting and monitoring guidance
+### 6. Add Signature Verification to your Inbound Parse
 
-### **Generic-Inbound-Event-Handler**
-The extensible business logic component. See [`Generic-Inbound-Event-Handler/README.md`](./Generic-Inbound-Event-Handler/README.md) for:
-- Customization examples and code templates
-- Integration patterns and best practices
-- Deployment and configuration details
+There are two options when securing webhooks coming from Inound Parse: **oauth** and **signature**. You can add either or both of these methods to a security policy to an existing Inboud Parse. More information can be found on [`this doc`](https://www.twilio.com/docs/sendgrid/api-reference/settings-inbound-parse/create-a-parse-webhook-security-policy).
 
-## 🔧 Configuration
+For this demo, we are going to use **signature** which will add a header to every request that you will be able to verify using a public key that you will get in subsequent step.
 
-### Required Parameters
+1. Create a new Webhook Security Policy
 
-Edit `../../global.properties` with your specific values:
+```
+curl -x -X POST https://api.sendgrid.com/v3/user/webhooks/security/policies \
+--header "Authorization: bearer <<YOUR_API_KEY_HERE>> \
+--data '{ "name": "inbound policy", "signature": {"enabled": true} }
+```
+
+2. **Important** In the response from that command, copy the **id** or the policy and also the value of the **public_key** in the signature object of the response.
+3. Paste the value of the **public_key** property in to the `global.properties` file to replace the value of `SendGridWebhookPublicKey`.
 
 ```properties
-# S3 bucket for email storage (must be globally unique)
-S3BucketName="your-company-inbound-emailsfacf"
-
-# SendGrid webhook public key for signature verification
-SendGridWebhookPublicKey="MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE..."
-
-# AWS region for deployment
-AWSRegion="us-east-1"
+SendGridWebhookPublicKey="YOUR_SENDGRID_WEBHOOK_PUBLIC_KEY_HERE"
 ```
 
-### AWS Profile
+4. Lastly, attach the policy to the Inbound Parse that you configured above with a curl command like this:
 
-Configure your AWS profile in `../../aws-profile.profile`:
+```
+curl -X PATCH https://api.sendgrid.com/v3/user/webhooks/parse/settings/your-parse.domain.com \
+--header "Authorization: bearer <<YOUR_API_KEY_HERE>> \
+--header "Content-Type: application/json \
+--data '{ "url": "<your-endpoint-from-step-3-SGInboundEmailToS3Api>", \
+"spam_check":false, "send_raw": true, "security_policy": "<ID-copied-from-step-6-2-above>" }
+```
+
+### 7. Re-Deploy the Main Email Processing Stack (INBOUND-EMAIL-STORE)
+
+Because we made important changes to `../../global.properties`, we need to redeploy the INBOUND-EMAIL-STORE to pick up those values. Run the commands below to build and then deploy (update) the stack.
 
 ```bash
-your-aws-profile-name
+sam build
+
+sam deploy \
+  --stack-name INBOUND-EMAIL-STORE \
+  --template template.yaml \
+  --profile $(cat ../../aws-profile.profile) \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides $(cat ../../global.properties | tr '\n' ' ')
 ```
 
-## 🛡️ Security Features
+### 8. TRY IT OUT!
 
-- **Signature Verification**: Validates all incoming emails are from SendGrid
-- **Input Sanitization**: Prevents injection attacks and malicious content
-- **IAM Least Privilege**: Minimal required permissions for all components
-- **Encrypted Storage**: All data encrypted at rest in S3
-- **Network Security**: Optional VPC integration for additional isolation
+Send any email to any user at the domain (`anyone@your-parse.domain.com`) that you configured for inbound parse. Check the S3 buckets and the lambda logs to see your emails getting ingest by your new inbound parse system!
 
-## 📊 Monitoring & Observability
+## File Structure
 
-- **CloudWatch Logs**: Detailed execution logs for all components
-- **CloudWatch Metrics**: Performance and error rate monitoring
-- **S3 Access Logs**: Storage access pattern analysis
-- **SNS Metrics**: Message processing statistics
-- **X-Ray Tracing**: Request flow analysis (optional)
+```
+Part-1-SendGrid-Inbound-Parse-with-Signature-Verification/
+├── Inbound-Email-Store/                    # Core email processing stack
+│   ├── lambdas/
+│   │   ├── inbound-email-to-s3/           # Webhook receiver and validator
+│   │   └── handle-sqs-messages/           # Email processor and parser
+│   ├── layers/
+│   │   ├── layer-parse-multipart-data/    # Multipart parsing utilities
+│   │   └── layer-validate-signature/      # SendGrid signature validation
+│   ├── template.yaml                      # SAM template
+│   └── samconfig.toml                     # SAM configuration
+├── Generic-Inbound-Event-Handler/         # Business logic stack
+│   ├── lambdas/
+│   │   └── generic-handler/               # Main Lambda function
+│   │       ├── app.mjs                    # Lambda handler code
+│   │       └── package.json               # Dependencies
+│   ├── template.yaml                      # SAM template
+│   └── samconfig.toml                     # SAM configuration
+└── README.md                              # This file
+```
 
-## 💰 Cost Optimization
+## Lambda Functions
 
+### Inbound-Email-Store Stack
+
+#### inbound-email-to-s3
+- **Purpose**: Receives webhook calls from SendGrid
+- **Features**: 
+  - Signature validation
+  - Input sanitization
+  - Raw email storage to S3
+  - SQS message queuing
+
+#### handle-sqs-messages
+- **Purpose**: Processes queued email messages
+- **Features**:
+  - Email parsing with mailparser.js
+  - Attachment extraction and storage
+  - Metadata extraction
+  - SNS message publishing
+
+### Generic-Inbound-Event-Handler Stack
+
+#### generic-handler
+- **Purpose**: Processes SNS events and implements custom business logic
+- **Features**:
+  - Receives structured email metadata
+  - Provides foundation for custom processing
+  - Extensible for AI integration, routing, and notifications
+
+## Data Storage
+
+### S3 Structure
+```
+your-bucket/
+├── {messageId}/
+│   ├── email.json                    # Parsed email data
+│   └── email-attachments/            # Extracted attachments
+│       ├── attachment1.pdf
+│       └── attachment2.jpg
+└── raw-emails/                       # Raw email storage
+    └── {timestamp}-{messageId}.eml
+```
+
+### SNS Message Format
+```json
+{
+  "messageId": "unique-message-id",
+  "messageTimeStamp": 1640995200000,
+  "subject": "Email Subject",
+  "from": "sender@example.com",
+  "to": "recipient@example.com",
+  "attachments": 2,
+  "contentTypes": ["text/plain", "text/html"]
+}
+```
+
+### Common Use Cases
+
+- **Email Summarization**: Use AI services to summarize email content
+- **Content Categorization**: Route emails based on content analysis
+- **Notification Workflows**: Send alerts for specific email types
+- **CRM Integration**: Automatically create leads or tickets
+- **Document Processing**: Analyze and process email attachments
+
+## Security Features
+
+- **Signature Validation**: Verifies emails are from SendGrid
+- **Input Sanitization**: Prevents injection attacks
+- **IAM Roles**: Least-privilege access patterns
+- **VPC Integration**: Optional network isolation
+- **Encrypted Storage**: All data encrypted at rest and in transit
+
+## Monitoring
+
+Monitor the system through:
+- **CloudWatch Logs**: Function execution logs for all components
+- **CloudWatch Metrics**: Performance and error metrics
+- **S3 Access Logs**: Storage access patterns
+- **SNS Metrics**: Message publishing statistics
+- **X-Ray Tracing**: Request tracing (optional)
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Deployment Fails**
+   - Verify AWS credentials and permissions
+   - Check that S3 bucket name is unique
+   - Ensure all required parameters are in `../../global.properties`
+   - Verify the Inbound-Email-Store stack is deployed before Generic-Inbound-Event-Handler
+
+2. **Webhook Not Receiving Emails**
+   - Verify SendGrid inbound parse configuration
+   - Check API Gateway endpoint URL
+   - Review CloudWatch logs for errors
+   - Ensure domain MX records point to SendGrid
+
+3. **Signature Validation Failures**
+   - Verify SendGrid webhook public key is correct
+   - Check that the key is properly formatted in `../../global.properties`
+
+4. **Email Processing Errors**
+   - Review SQS queue for failed messages
+   - Check Lambda function logs
+   - Verify S3 bucket permissions
+
+5. **SNS Not Receiving Messages**
+   - Verify the SNS topic ARN matches between stacks
+   - Check Lambda function permissions for SNS access
+
+### Log Locations
+
+- **API Gateway**: CloudWatch Logs → API Gateway
+- **Lambda Functions**: CloudWatch Logs → `/aws/lambda/{function-name}`
+- **SQS**: CloudWatch Metrics → SQS
+- **SNS**: CloudWatch Metrics → SNS
+
+## Cost Optimization
+
+- **S3 Lifecycle Policies**: Automatically archive old emails
+- **Lambda Concurrency**: Configure appropriate limits
+- **SNS Filtering**: Reduce downstream processing costs
 - **Serverless Architecture**: Pay only for actual usage
-- **S3 Lifecycle Policies**: Automatic archival of old emails
-- **Lambda Concurrency Limits**: Control costs during traffic spikes
-- **SNS Message Filtering**: Reduce downstream processing costs
 
-## 🔄 Extending the System
+## Integration with Part 2
 
-### Adding Custom Business Logic
+This Part 1 system integrates seamlessly with Part 2 (AI Processing) by:
+- Providing the SNS topic that triggers AI processing
+- Storing email data in S3 for AI analysis
+- Maintaining the same data structure and message format
+- Supporting the complete email processing pipeline
 
-1. Modify the `Generic-Inbound-Event-Handler` lambda
-2. Add new AWS services as needed (Bedrock, DynamoDB, RDS, etc.)
-3. Implement your specific email processing requirements
+## Support
 
-### Common Extensions
+For issues or questions:
+1. Check CloudWatch logs for error details
+2. Review this documentation
+3. Verify deployment order and dependencies
 
-- **Database Integration**: Store email data in DynamoDB or RDS
-- **AI/ML Processing**: Add email classification or sentiment analysis
-- **External APIs**: Integrate with CRM, ticketing, or notification systems
-- **Workflow Automation**: Trigger business processes based on email content
+## Next Steps
 
-## 🆘 Support & Troubleshooting
-
-### Getting Help
-
-1. **Check Logs**: Review CloudWatch logs for error details
-2. **Review Documentation**: Consult the detailed README files in each directory
-3. **Common Issues**: See troubleshooting sections in component READMEs
-4. **Create Issues**: Report bugs or request features in the repository
-
-### Common First Steps
-
-1. Verify AWS credentials and permissions
-2. Check that all required parameters are configured
-3. Ensure SendGrid webhook is properly configured
-4. Review CloudWatch logs for specific error messages
-
-## 🤝 Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- Built with AWS Serverless Application Model (SAM)
-- Uses SendGrid Inbound Parse webhook system
-- Leverages mailparser.js for robust email parsing
-- Inspired by modern serverless architecture patterns
-
----
-
-**Ready to get started?** Begin with the [Inbound-Email-Store setup guide](./Inbound-Email-Store/README.md) to deploy the core email processing system.
+After successful deployment:
+1. Test email delivery to your configured address
+2. Implement custom business logic in the Generic Event Handler
+3. Set up monitoring and alerting
+4. Consider deploying Part 2 for AI-powered email processing
+5. Integrate with external systems (CRM, ticketing, etc.)

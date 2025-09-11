@@ -72,6 +72,17 @@ export const lambdaHandler = async (event) => {
              */
             if (key.startsWith("fail")) {
                 
+                /**
+                 * The invalid signature email will have "fail" in the S3 object key which
+                 * is generated in the inbound-email-to-s3 lambda. You could choose to
+                 * stop processing further in that lambda and NOT save the raw email
+                 * to the S3 bucket.
+                 * 
+                 * Additional processing could be to generate events and alters that
+                 * the system is receiving emails with invalid signatures.
+                 * Regardless of how you choose to handle it, you should not
+                 * process the email further.
+                 */
                 console.log("This email did not pass the security check. Exiting...");  
                 // Add logic to handle a failed header security check
                 return { status: 'skipped', reason: 'security_check_failed' };

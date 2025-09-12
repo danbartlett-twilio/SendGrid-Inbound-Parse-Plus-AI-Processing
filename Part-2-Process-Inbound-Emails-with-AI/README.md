@@ -89,6 +89,11 @@ This solution creates an intelligent email processing pipeline that:
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
+## Icon Version
+
+![High-Level Architecture](../images/Part-2.png)
+
+
 ## 📁 Project Structure
 
 ```
@@ -180,11 +185,11 @@ The AI processing system. See [`Process-Inbound-Email/README.md`](./Process-Inbo
 - **Standard Use Cases**: Ideal for most customer support, sales, and general inquiry scenarios
 
 ### **Alternative Solutions for Large Attachments**
-If you need to handle larger email attachments, consider these architectural alternatives:
+If you need to handle larger email attachments, consider an architectural alternative such as:
 
-- **Application Load Balancer (ALB)**: Replace API Gateway with ALB for higher payload limits
-- **Direct S3 Streaming**: Stream payloads directly to S3 buckets with onCreate trigger to kick off next lambda
-- **Hybrid Approach**: Use API Gateway for standard emails and ALB for large attachment handling
+1. **Application Load Balancer (ALB)**: Replace API Gateway with ALB for higher payload limits
+2. **Direct S3 Streaming**: Put a service behing the ALB that stream payloads directly to S3 bucket
+3. **S3 Bucket Event**: set an onCreate trigger to kick off next lambda when a new object is saved
 
 ### **Monitoring Recommendations**
 - **Enable API Gateway Logging**: Track requests rejected due to size limits

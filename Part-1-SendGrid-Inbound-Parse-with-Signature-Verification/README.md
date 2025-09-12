@@ -22,6 +22,10 @@ SendGrid → API Gateway → Lambda (inbound-email-to-s3) → S3
                                                               Generic Event Handler
 ```
 
+## Icon Version
+
+![High-Level Architecture](../images/Part-1.png)
+
 ### Components
 
 #### Core Email Processing Stack (Inbound-Email-Store)

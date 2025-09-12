@@ -140,6 +140,8 @@ Now we need to create setup a Inbound Parse webook.
 6. Check the box that says **POST the raw, fill MIME message**
 7. Click **Add**
 
+![High-Level Architecture](../images/Inbound-Parse-Config.png)
+
 ### 6. Add Signature Verification to your Inbound Parse
 
 There are two options when securing webhooks coming from Inound Parse: **oauth** and **signature**. You can add either or both of these methods to a security policy to an existing Inboud Parse. More information can be found on [`this doc`](https://www.twilio.com/docs/sendgrid/api-reference/settings-inbound-parse/create-a-parse-webhook-security-policy).

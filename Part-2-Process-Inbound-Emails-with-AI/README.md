@@ -167,6 +167,30 @@ The AI processing system. See [`Process-Inbound-Email/README.md`](./Process-Inbo
 - EventBridge routing and handlers
 - Customization and extension patterns
 
+## ⚠️ Limitations
+
+### **Payload Size Constraints**
+- **API Gateway Limit**: 10 MB maximum payload size for REST endpoints
+- **SendGrid Capability**: Supports up to 30 MB email payloads
+- **Impact**: Emails with large attachments exceeding 10 MB will be rejected by API Gateway
+
+### **When This Architecture Works Well**
+- **Small to Medium Attachments**: Perfect for typical business emails with standard attachments
+- **Text-Heavy Emails**: Excellent for emails without large file attachments
+- **Standard Use Cases**: Ideal for most customer support, sales, and general inquiry scenarios
+
+### **Alternative Solutions for Large Attachments**
+If you need to handle larger email attachments, consider these architectural alternatives:
+
+- **Application Load Balancer (ALB)**: Replace API Gateway with ALB for higher payload limits
+- **Direct S3 Streaming**: Stream payloads directly to S3 buckets with onCreate trigger to kick off next lambda
+- **Hybrid Approach**: Use API Gateway for standard emails and ALB for large attachment handling
+
+### **Monitoring Recommendations**
+- **Enable API Gateway Logging**: Track requests rejected due to size limits
+- **Set Up Alerts**: Monitor for 413 Payload Too Large errors
+- **Size Analytics**: Track email size patterns to inform architectural decisions
+
 
 ## 🛡️ Security Features
 

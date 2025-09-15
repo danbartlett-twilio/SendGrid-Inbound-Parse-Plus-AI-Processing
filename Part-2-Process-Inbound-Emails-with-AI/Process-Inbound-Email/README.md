@@ -1,10 +1,18 @@
 # Process Inbound Emails with AI
 
-A comprehensive AWS serverless solution for processing inbound emails using AI-powered categorization, summarization, and intelligent routing. This system leverages AWS Bedrock for natural language processing and EventBridge for event-driven architecture.
+A starter kit for building an AWS serverless solution for processing inbound emails using AI-powered categorization, summarization, and intelligent routing. This system leverages AWS Bedrock for natural language processing and EventBridge for event-driven architecture.
+
+**Important**: This is a starter kit/blueprint that provides the foundation and architecture for AI-powered email processing. Companies will need to customize the AI prompts, implement specific business logic, and add production-ready features before deploying to production.
+
+## 📋 Navigation
+- **← [Part 2 Main](../README.md)** - Part 2 overview and deployment guide
+- **← [Main Project Overview](../../../README.md)** - Complete project overview
+- **← [Shared-Layers](../Shared-Layers/README.md)** - Shared layers (deploy first)
+- **← [Outbound-Emails](../Outbound-Emails/README.md)** - Outbound email system
 
 ## Overview
 
-This application creates a complete AI-powered email processing pipeline that:
+This starter kit provides the foundation for building an AI-powered email processing pipeline that:
 - Receives email metadata from SNS topics (from Part-1)
 - Retrieves full email content from S3 storage
 - Uses AWS Bedrock AI for email categorization and summarization
@@ -59,11 +67,13 @@ This application creates a complete AI-powered email processing pipeline that:
 6. **EventBridge Event** → "Attachments Processed"
 7. **Category Handler** → Processes email with complete attachment details, generates AI response, saves to S3, and sends response
 
-**Key Benefits**:
+**Key Benefits** (with customization):
 - **Single Response**: One email response per inbound email
 - **Complete Information**: Full attachment details included in response
 - **AI-Powered Analysis**: Intelligent attachment content understanding
 - **Audit Trail**: All AI responses saved to S3 for analysis and debugging
+
+**Customization Required**: The AI prompts and response generation are basic examples. You'll need to customize these for your specific industry, use cases, and business requirements.
 
 ### Components
 
@@ -118,13 +128,13 @@ Each category handler automatically saves its AI-generated response to S3 as `ll
 - AWS SAM CLI installed
 - Node.js runtime environment
 - AWS Bedrock access configured
-- **Important**: Both `Shared-Layers` and `Outbound-Emails` stacks must be deployed first
+- **Important**: Both [`Shared-Layers`](../Shared-Layers/README.md) and [`Outbound-Emails`](../Outbound-Emails/README.md) stacks must be deployed first
 
 ## Deployment Order
 
 **⚠️ CRITICAL**: Deploy stacks in this exact order:
-1. ✅ `Shared-Layers` stack (must be deployed first)
-2. ✅ `Outbound-Emails` stack (must be deployed second)
+1. ✅ [`Shared-Layers`](../Shared-Layers/README.md) stack (must be deployed first)
+2. ✅ [`Outbound-Emails`](../Outbound-Emails/README.md) stack (must be deployed second)
 3. ✅ `Process-Inbound-Email` stack (this stack - deploy last)
 
 ## Setup Instructions
@@ -219,33 +229,38 @@ All category handlers follow the same processing pattern:
 
 #### SalesEmailHandler
 **Purpose**: Processes sales-related emails
-**Features**: Lead qualification, CRM integration, follow-up scheduling
+**Features**: Basic lead qualification, placeholder CRM integration, follow-up scheduling
 **Response Format**: AI-generated sales response + email details + attachment details
 **S3 Storage**: Saves response to `{messageId}/llm-response.json`
+**Customization Required**: Implement your specific CRM integration, lead scoring, and sales workflows
 
 #### SupportEmailHandler  
 **Purpose**: Processes support and technical assistance emails
-**Features**: Ticket creation, escalation routing, knowledge base integration
+**Features**: Basic ticket creation, placeholder escalation routing, knowledge base integration
 **Response Format**: AI-generated support response + email details + attachment details
 **S3 Storage**: Saves response to `{messageId}/llm-response.json`
+**Customization Required**: Implement your specific ticketing system integration and support workflows
 
 #### AccountEmailHandler
 **Purpose**: Processes account-related emails
-**Features**: Account updates, billing inquiries, subscription management
+**Features**: Basic account updates, placeholder billing inquiries, subscription management
 **Response Format**: AI-generated account response + email details + attachment details
 **S3 Storage**: Saves response to `{messageId}/llm-response.json`
+**Customization Required**: Implement your specific account management and billing system integrations
 
 #### InquiryEmailHandler
 **Purpose**: Processes general inquiries and information requests
-**Features**: Information routing, FAQ responses, general assistance
+**Features**: Basic information routing, placeholder FAQ responses, general assistance
 **Response Format**: AI-generated inquiry response + email details + attachment details
 **S3 Storage**: Saves response to `{messageId}/llm-response.json`
+**Customization Required**: Implement your specific knowledge base and FAQ system integrations
 
 #### ConversationEmailHandler
 **Purpose**: Processes conversation-related emails with context tracking
-**Features**: Conversation history, context-aware responses, thread management
+**Features**: Basic conversation history, context-aware responses, thread management
 **Response Format**: AI-generated conversation response + email details
 **S3 Storage**: Saves response to `{messageId}/llm-response.json` + conversation history to `conversations/{conversationId}.json`
+**Customization Required**: Implement your specific conversation management and context tracking logic
 
 **Enhanced Email Response Format**:
 All category handlers now include comprehensive attachment details in their response emails:
@@ -373,12 +388,16 @@ The system uses AWS Bedrock Claude models for:
 - **Confidence Scoring**: Provides confidence levels for AI decisions
 - **Reasoning**: Explains the AI's categorization logic
 
+**Customization Required**: The AI prompts are basic examples. You'll need to optimize these for your specific industry, use cases, and business requirements.
+
 ### Prompt Engineering
 
-The system uses optimized prompts for:
+The system uses example prompts for:
 - **Single-call Processing**: Categorization and summarization in one API call
 - **Structured Output**: JSON-formatted responses for easy parsing
 - **Context Awareness**: Considers email metadata and content structure
+
+**Customization Required**: These are basic example prompts. You'll need to develop and optimize prompts for your specific business requirements and use cases.
 
 ### Performance Optimization
 
@@ -414,7 +433,7 @@ Monitor the system through:
 ### Common Issues
 
 1. **Deployment Fails**
-   - Verify `Shared-Layers` and `Outbound-Emails` stacks are deployed first
+   - Verify [`Shared-Layers`](../Shared-Layers/README.md) and [`Outbound-Emails`](../Outbound-Emails/README.md) stacks are deployed first
    - Check Bedrock model access and permissions
    - Ensure all required parameters are in `../../global.properties`
 
@@ -459,17 +478,22 @@ Monitor the system through:
 
 ### Adding New Categories
 
-1. **Update FirstPassFunction**: Add new category to AI prompt
-2. **Create New Handler**: Implement category-specific logic
+**Development Required**: Adding new categories requires significant customization:
+
+1. **Update FirstPassFunction**: Add new category to AI prompt (requires prompt engineering expertise)
+2. **Create New Handler**: Implement category-specific logic with your business requirements
 3. **Add EventBridge Rule**: Route events to new handler
 4. **Update Documentation**: Document new category behavior
 
 ### Extending AI Processing
 
-1. **Modify Prompts**: Update Bedrock prompts for new requirements
+**Customization Required**: These extensions require development work:
+
+1. **Modify Prompts**: Update Bedrock prompts for new requirements (requires AI expertise)
 2. **Add New Models**: Integrate additional Bedrock models
 3. **Custom Logic**: Implement specialized AI processing logic
 4. **Response Generation**: Add AI-powered response generation
+5. **Business Logic**: Implement your specific business rules and workflows
 
 ## Support
 
@@ -484,9 +508,14 @@ For issues or questions:
 After successful deployment:
 1. Test email processing with sample emails
 2. Verify LLM responses are being saved to S3 as `llm-response.json` files
-3. Configure category-specific business logic in handlers
-4. Set up monitoring and alerting for AI processing
-5. Implement automated response generation
-6. Add custom categories and processing logic as needed
-7. Integrate with external systems (CRM, ticketing, etc.)
-8. Set up analysis and reporting on saved AI responses
+3. **Implement category-specific business logic** in handlers (required for production)
+4. **Set up comprehensive monitoring and alerting** for AI processing (required for production)
+5. **Customize AI prompts** for your specific use cases (required for production)
+6. **Implement automated response generation** with your business logic
+7. **Add custom categories and processing logic** as needed
+8. **Integrate with external systems** (CRM, ticketing, etc.) - required for production
+9. **Set up analysis and reporting** on saved AI responses
+10. **Add security hardening** and compliance features
+11. **Implement proper error handling** and recovery mechanisms
+
+**Important**: This starter kit provides the foundation, but significant additional development is required before production deployment.

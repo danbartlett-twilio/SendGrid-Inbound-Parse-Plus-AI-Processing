@@ -1,10 +1,10 @@
 # SendGrid Inbound Parse + AI Processing
 
-A comprehensive AWS serverless solution that combines secure email reception with intelligent AI-powered processing. This system receives emails through SendGrid's Inbound Parse webhook, processes them with AWS Bedrock AI, and provides intelligent categorization, routing, and automated response capabilities.
+A starter kit for an AWS serverless solution that combines secure inbound email reception with intelligent AI-powered processing. This system receives emails through SendGrid's Inbound Parse webhook, processes them with AWS Bedrock AI, and provides intelligent categorization, routing, and automated response capabilities.
 
 ## 🚀 What This Project Does
 
-This solution creates a complete intelligent email processing pipeline that:
+This starter kit provides a foundation for building an intelligent email processing pipeline that:
 
 ### **Part 1: Secure Email Reception**
 - **Securely receives emails** via SendGrid Inbound Parse webhook with signature verification
@@ -20,18 +20,22 @@ This solution creates a complete intelligent email processing pipeline that:
 
 ## 🎯 Why This Project is Helpful
 
-### **Enterprise-Ready Email Intelligence**
+### **Enterprise-Ready Email Intelligence Foundation**
 - **Security First**: Built-in signature verification ensures emails are authentic
 - **AI-Powered**: Smart categorization into sales, support, account, and inquiry categories
 - **Scalable Architecture**: Serverless design handles varying email volumes automatically
 - **Cost Effective**: Pay only for what you use with AWS Lambda, S3, and Bedrock
 - **Reliable**: Built-in error handling, retry logic, and monitoring
 
-### **Developer-Friendly**
+**Note**: This is a starter kit that provides the foundation and architecture. You will need to customize the business logic, integrate with their existing systems, and add production-ready features before deploying to production.
+
+### **Developer-Friendly Starter Kit**
 - **Modular Design**: Separate concerns for easy maintenance and testing
 - **Extensible**: Clean interfaces for adding custom business logic
 - **Well Documented**: Comprehensive documentation and examples
-- **Production Ready**: Includes monitoring, logging, and troubleshooting guides
+- **Production Foundation**: Includes monitoring, logging, and troubleshooting guides
+
+**Important**: While this starter kit provides a solid foundation, it requires customization and additional development to meet production requirements.
 
 ### **Common Use Cases**
 - **Customer Support**: Automatically categorize and route support emails to appropriate teams
@@ -169,14 +173,14 @@ default
 Go to the README files linked below for instruction on first deploying Part 1 and then Part 2.
 
 ### **Part 1: Email Reception**
-See [`Part-1-SendGrid-Inbound-Parse-with-Signature-Verification/README.md`](./Part-1-SendGrid-Inbound-Parse-with-Signature-Verification/README.md) for:
+See [**Part-1-SendGrid-Inbound-Parse-with-Signature-Verification**](./Part-1-SendGrid-Inbound-Parse-with-Signature-Verification/README.md) for:
 - Complete setup and deployment instructions
 - Architecture details and component descriptions
 - Configuration options and security features
 - Troubleshooting and monitoring guidance
 
 ### **Part 2: AI Processing**
-See [`Part-2-Process-Inbound-Emails-with-AI/README.md`](./Part-2-Process-Inbound-Emails-with-AI/README.md) for:
+See [**Part-2-Process-Inbound-Emails-with-AI**](./Part-2-Process-Inbound-Emails-with-AI/README.md) for:
 - Part 1 is required for Part 2!
 - AI categorization and summarization setup
 - EventBridge routing and handlers
@@ -194,6 +198,14 @@ See [`Part-2-Process-Inbound-Emails-with-AI/README.md`](./Part-2-Process-Inbound
 - `global.properties`: All configuration parameters
 - `aws-profile.profile`: AWS profile for deployment
 
+### Important Note
+This starter kit provides the infrastructure and basic functionality. Before production deployment, you'll need to:
+- Customize the AI prompts for your specific use cases
+- Implement your business logic in the handlers
+- Add proper error handling and monitoring
+- Integrate with your existing systems (CRM, ticketing, etc.)
+- Add security hardening and compliance features
+
 ## 🛡️ Security Features
 
 - **Signature Verification**: Validates all incoming emails are from SendGrid
@@ -202,7 +214,7 @@ See [`Part-2-Process-Inbound-Emails-with-AI/README.md`](./Part-2-Process-Inbound
 - **Encrypted Storage**: All data encrypted at rest and in transit
 - **Input Validation**: Email content validation and sanitization
 
-## 📊 Monitoring & Observability
+## 📊 Monitoring & Observability Considerations
 
 - **CloudWatch Logs**: Detailed execution logs for all components
 - **CloudWatch Metrics**: Performance and error rate monitoring
@@ -217,18 +229,24 @@ See [`Part-2-Process-Inbound-Emails-with-AI/README.md`](./Part-2-Process-Inbound
 - **S3 Lifecycle Policies**: Automatic archival of old emails
 - **Lambda Concurrency Limits**: Control costs during traffic spikes
 
-## 🔄 Extending the System
+## 🔄 Extending and Customizing the System
 
-### Adding Custom Business Logic
-1. Modify the `Generic-Inbound-Event-Handler` lambda (Part 1)
-2. Add new category handlers (Part 2)
-3. Implement your specific email processing requirements
+This starter kit is designed to be customized and extended. Here are the key areas where you'll need to add your own business logic:
+
+### Essential Customizations for Production
+1. **Business Logic Implementation**: Modify the `Generic-Inbound-Event-Handler` lambda (Part 1) and category handlers (Part 2)
+2. **AI Prompt Optimization**: Customize Bedrock prompts for your specific industry and use cases
+3. **Integration Development**: Connect to your existing systems and workflows
+4. **Security Hardening**: Add additional security measures beyond the basic signature verification
+5. **Monitoring and Alerting**: Implement comprehensive monitoring for production workloads
 
 ### Common Extensions
 - **Database Integration**: Store email data in DynamoDB or RDS
 - **CRM Integration**: Connect sales emails to CRM systems
 - **Ticketing Systems**: Route support emails to ticketing platforms
 - **Workflow Automation**: Trigger business processes based on email content
+- **Custom AI Models**: Integrate specialized AI models for your domain
+- **Compliance Features**: Add GDPR, HIPAA, or other regulatory compliance measures
 
 ## 🆘 Support & Troubleshooting
 
@@ -245,17 +263,6 @@ See [`Part-2-Process-Inbound-Emails-with-AI/README.md`](./Part-2-Process-Inbound
 4. Verify Bedrock access is enabled (for Part 2)
 5. Review CloudWatch logs for specific error messages
 
-## 🤝 Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Update documentation
-6. Submit a pull request
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
@@ -270,4 +277,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**Ready to get started?** Begin with [Part 1](./Part-1-SendGrid-Inbound-Parse-with-Signature-Verification/README.md) to set up secure email reception, then optionally add [Part 2](./Part-2-Process-Inbound-Emails-with-AI/README.md) for AI-powered processing capabilities.
+**Ready to get started?** Begin with [**Part 1**](./Part-1-SendGrid-Inbound-Parse-with-Signature-Verification/README.md) to set up secure email reception, then optionally add [**Part 2**](./Part-2-Process-Inbound-Emails-with-AI/README.md) for AI-powered processing capabilities.

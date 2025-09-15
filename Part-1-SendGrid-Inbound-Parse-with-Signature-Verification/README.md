@@ -1,16 +1,24 @@
 # SendGrid Inbound Parse with Signature Verification
 
-A comprehensive AWS serverless solution for processing inbound emails from SendGrid's Inbound Parse webhook. This system provides secure email reception, parsing, storage, and processing capabilities with signature verification.
+A starter kit for an AWS serverless solution for securely processing inbound emails from SendGrid's Inbound Parse webhook. This system provides secure email reception, parsing, storage, and pub/sub messaging capabilities to trigger additional processing.
+
+**Important**: This is a starter kit/blueprint that provides the foundation and architecture. Companies will need to customize the business logic, add production-ready features, and integrate with their existing systems before deploying to production.
+
+## 📋 Navigation
+- **← [Main Overview](../../README.md)** - Project overview and quick start
+- **→ [Part 2: AI Processing](../Part-2-Process-Inbound-Emails-with-AI/README.md)** - AI-powered email processing
 
 ## Overview
 
-This application creates a complete email processing pipeline that:
+This starter kit provides the foundation for building an email processing pipeline that:
 - Receives emails via SendGrid Inbound Parse webhook
 - Validates email signatures for security
 - Parses email content and attachments
 - Stores processed data in S3
 - Publishes metadata to SNS for downstream processing
 - Provides extensible architecture for custom business logic
+
+**Note**: The current implementation includes basic functionality and placeholder business logic. You'll need to customize the handlers and add your specific business requirements before production deployment.
 
 ## Architecture
 
@@ -37,7 +45,9 @@ SendGrid → API Gateway → Lambda (inbound-email-to-s3) → S3
 - **SNS Topic**: Publishes email metadata for downstream processing
 
 #### Business Logic Stack (Generic-Inbound-Event-Handler)
-- **Generic Event Handler**: Processes SNS messages and implements custom business logic
+- **Generic Event Handler**: Processes SNS messages and provides a foundation for implementing custom business logic
+
+**Customization Required**: The Generic Event Handler currently contains placeholder logic. You'll need to implement your specific business requirements here.
 
 ## Prerequisites
 
@@ -46,6 +56,9 @@ SendGrid → API Gateway → Lambda (inbound-email-to-s3) → S3
 - Node.js runtime environment
 - SendGrid account with Inbound Parse configured
 - Unique S3 bucket name for email storage
+- Repo cloned to your local machine as described in [Main Overview](../../README.md)
+- AWS Profile configured as described in [Main Overview](../../README.md)
+- global.properties file configured as described in [Main Overview](../../README.md)
 
 ## Setup Instructions
 
@@ -103,7 +116,9 @@ sam deploy \
 
 ### 4. Deploy the Generic Event Handler
 
-This spins up a simple lambda file that subscribes to the SNS topic the publishes when emails have finished processing. This is just a stub for whatever functionality you want to add. Part 2 picks up here!
+This spins up a simple lambda file that subscribes to the SNS topic that publishes when emails have finished processing. This is a starter implementation that provides the foundation for whatever functionality you want to add. [**Part 2**](../Part-2-Process-Inbound-Emails-with-AI/README.md) picks up here!
+
+**Customization Note**: The Generic Event Handler currently contains basic placeholder logic. You'll need to customize this for your specific use case or use it as a starting point for more complex business logic.
 
 ```bash
 cd ../Generic-Inbound-Event-Handler
@@ -238,11 +253,13 @@ Part-1-SendGrid-Inbound-Parse-with-Signature-Verification/
 ### Generic-Inbound-Event-Handler Stack
 
 #### generic-handler
-- **Purpose**: Processes SNS events and implements custom business logic
+- **Purpose**: Processes SNS events and provides foundation for custom business logic
 - **Features**:
   - Receives structured email metadata
-  - Provides foundation for custom processing
+  - Provides starter implementation for custom processing
   - Extensible for AI integration, routing, and notifications
+
+**Customization Required**: This handler currently contains placeholder logic. You'll need to implement your specific business requirements before production use.
 
 ## Data Storage
 
@@ -273,11 +290,14 @@ your-bucket/
 
 ### Common Use Cases
 
+This starter kit provides the foundation for:
 - **Email Summarization**: Use AI services to summarize email content
 - **Content Categorization**: Route emails based on content analysis
 - **Notification Workflows**: Send alerts for specific email types
 - **CRM Integration**: Automatically create leads or tickets
 - **Document Processing**: Analyze and process email attachments
+
+**Implementation Required**: These use cases require additional development and customization beyond what's provided in this starter kit.
 
 ## Security Features
 
@@ -366,11 +386,13 @@ Monitor the system through:
 
 ## Integration with Part 2
 
-This Part 1 system integrates seamlessly with Part 2 (AI Processing) by:
+This Part 1 system integrates seamlessly with [**Part 2**](../Part-2-Process-Inbound-Emails-with-AI/README.md) (AI Processing) by:
 - Providing the SNS topic that triggers AI processing
 - Storing email data in S3 for AI analysis
 - Maintaining the same data structure and message format
-- Supporting the complete email processing pipeline
+- Supporting the foundation for a complete email processing pipeline
+
+**Note**: Part 2 also requires customization and additional development to meet production requirements.
 
 ## Support
 
@@ -383,7 +405,11 @@ For issues or questions:
 
 After successful deployment:
 1. Test email delivery to your configured address
-2. Implement custom business logic in the Generic Event Handler
-3. Set up monitoring and alerting
-4. Consider deploying Part 2 for AI-powered email processing
-5. Integrate with external systems (CRM, ticketing, etc.)
+2. **Implement custom business logic** in the Generic Event Handler (required for production)
+3. **Set up comprehensive monitoring and alerting** (required for production)
+4. Consider deploying [**Part 2**](../Part-2-Process-Inbound-Emails-with-AI/README.md) for AI-powered email processing
+5. **Integrate with external systems** (CRM, ticketing, etc.) - required for production
+6. **Add security hardening** beyond basic signature verification
+7. **Implement proper error handling and recovery** mechanisms
+
+**Important**: This starter kit provides the foundation, but significant additional development is required before production deployment.

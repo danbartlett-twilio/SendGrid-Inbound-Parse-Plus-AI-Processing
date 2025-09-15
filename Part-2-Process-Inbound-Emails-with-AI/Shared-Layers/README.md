@@ -1,10 +1,18 @@
 # Shared Layers
 
-A collection of reusable AWS Lambda layers that provide common functionality for email processing operations across the Part-2 microservices. These layers contain shared code for S3 operations and EventBridge event publishing.
+A starter kit providing reusable AWS Lambda layers that provide common functionality for email processing operations across the Part-2 microservices. These layers contain shared code for S3 operations and EventBridge event publishing.
+
+**Important**: This is a starter kit that provides basic shared functionality. Companies will need to extend these layers with their specific business logic and add production-ready features before deploying to production.
+
+## 📋 Navigation
+- **← [Part 2 Main](../README.md)** - Part 2 overview and deployment guide
+- **← [Main Project Overview](../../../README.md)** - Complete project overview
+- **→ [Outbound-Emails](../Outbound-Emails/README.md)** - Outbound email system (deploy second)
+- **→ [Process-Inbound-Email](../Process-Inbound-Email/README.md)** - AI processing system (deploy third)
 
 ## Overview
 
-This stack creates two Lambda layers that encapsulate common operations used by multiple Lambda functions in the email processing pipeline:
+This starter kit provides two Lambda layers that encapsulate basic operations used by multiple Lambda functions in the email processing pipeline:
 
 - **S3 Operations Layer**: Common S3 read/write operations for email data
 - **EventBridge Operations Layer**: Event publishing and routing operations
@@ -39,8 +47,8 @@ This stack creates two Lambda layers that encapsulate common operations used by 
 ## Deployment Order
 
 **⚠️ CRITICAL**: This stack must be deployed before:
-1. `Outbound-Emails` stack
-2. `Process-Inbound-Email` stack
+1. [`Outbound-Emails`](../Outbound-Emails/README.md) stack
+2. [`Process-Inbound-Email`](../Process-Inbound-Email/README.md) stack
 
 The other stacks depend on the layer ARNs exported by this stack.
 
@@ -98,24 +106,28 @@ sam deploy \
 
 ### S3 Operations Layer
 
-**Purpose**: Provides common S3 operations for reading and writing email data.
+**Purpose**: Provides basic S3 operations for reading and writing email data.
 
 **Key Functions**:
 - `getEmailData(messageId)`: Retrieve parsed email data from S3
 - `saveProcessingResults(messageId, results)`: Save processing results to S3
-- `handleS3Errors(error)`: Standardized error handling for S3 operations
+- `handleS3Errors(error)`: Basic error handling for S3 operations
+
+**Customization Required**: These are basic utility functions. You'll need to extend them with your specific business logic and error handling requirements.
 
 **Dependencies**:
 - `@aws-sdk/client-s3`: AWS SDK for S3 operations
 
 ### EventBridge Operations Layer
 
-**Purpose**: Provides event publishing and routing capabilities.
+**Purpose**: Provides basic event publishing and routing capabilities.
 
 **Key Functions**:
 - `publishEmailEvent(eventData)`: Publish email processing events
-- `createEventDetail(emailData, results)`: Create standardized event structure
-- `handleEventBridgeErrors(error)`: Standardized error handling
+- `createEventDetail(emailData, results)`: Create basic event structure
+- `handleEventBridgeErrors(error)`: Basic error handling
+
+**Customization Required**: These are basic utility functions. You'll need to extend them with your specific event structures and business logic.
 
 **Dependencies**:
 - `@aws-sdk/client-eventbridge`: AWS SDK for EventBridge operations
@@ -225,7 +237,12 @@ For issues or questions:
 ## Next Steps
 
 After successful deployment:
-1. Deploy the `Outbound-Emails` stack (depends on S3 layer)
-2. Deploy the `Process-Inbound-Email` stack (depends on both layers)
-3. Test layer functionality through consuming Lambda functions
-4. Monitor layer usage and performance
+1. Deploy the [`Outbound-Emails`](../Outbound-Emails/README.md) stack (depends on S3 layer)
+2. Deploy the [`Process-Inbound-Email`](../Process-Inbound-Email/README.md) stack (depends on both layers)
+3. **Extend layer functionality** with your specific business logic (required for production)
+4. **Test layer functionality** through consuming Lambda functions
+5. **Add comprehensive monitoring** and performance tracking
+6. **Implement proper error handling** and recovery mechanisms
+7. **Add security hardening** and compliance features
+
+**Important**: This starter kit provides the foundation layers, but you'll need to customize and extend them for your specific use cases before production deployment.

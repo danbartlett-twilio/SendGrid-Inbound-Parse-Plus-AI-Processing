@@ -146,7 +146,7 @@ Part-2-Process-Inbound-Emails-with-AI/
 - AWS SAM CLI installed
 - Node.js runtime environment
 - AWS Bedrock access configured
-- **Part-1 stacks deployed** ([Inbound-Email-Store](../Part-1-SendGrid-Inbound-Parse-with-Signature-Verification/README.md) and Generic-Inbound-Event-Handler)
+- **Part-1 stacks deployed** ([Inbound-Email-Store and Generic-Inbound-Event-Handler](../Part-1-SendGrid-Inbound-Parse-with-Signature-Verification/README.md))
 
 ### Deploy in Order
 

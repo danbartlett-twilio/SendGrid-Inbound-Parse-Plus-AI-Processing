@@ -68,7 +68,6 @@ Install required Node.js libraries for the Lambda layers:
 
 ```bash
 cd Inbound-Email-Store
-npm --prefix ./layers/layer-parse-multipart-data/nodejs install
 npm --prefix ./layers/layer-validate-signature install
 ```
 
